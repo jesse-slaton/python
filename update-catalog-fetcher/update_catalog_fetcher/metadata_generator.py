@@ -3,7 +3,6 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional
 
 from .models import TaniumDeployMetadata, WindowsUpdate
 
@@ -17,9 +16,9 @@ class MetadataGenerator:
         install_script: str,
         remove_script: str,
         update_file_name: str,
-        os_edition_id: Optional[str] = None,
-        os_product_name: Optional[str] = None,
-        os_build: Optional[str] = None,
+        os_edition_id: str | None = None,
+        os_product_name: str | None = None,
+        os_build: str | None = None,
     ) -> TaniumDeployMetadata:
         """Generate Tanium Deploy metadata for an update.
 

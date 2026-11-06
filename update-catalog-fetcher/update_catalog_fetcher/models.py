@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -10,18 +9,18 @@ class WindowsUpdate:
     """Represents a Windows update from the Microsoft Update Catalog."""
 
     title: str
-    kb: Optional[str]
+    kb: str | None
     products: str
     classification: str
     last_updated: datetime
-    version: Optional[str]
+    version: str | None
     size: str
     update_id: str
-    architecture: Optional[str]
-    download_url: Optional[str] = None
+    architecture: str | None
+    download_url: str | None = None
 
     @property
-    def kb_number(self) -> Optional[str]:
+    def kb_number(self) -> str | None:
         """Extract KB number without 'KB' prefix."""
         if self.kb:
             return self.kb.replace("KB", "").replace("kb", "")
@@ -44,14 +43,14 @@ class TaniumDeployMetadata:
     remove_command: str
     remove_timeout: int
     remove_success_codes: list[int]
-    os_edition_id: Optional[str] = None
-    os_product_name: Optional[str] = None
-    os_build: Optional[str] = None
-    self_service_name: Optional[str] = None
-    self_service_icon: Optional[str] = None
-    install_requirements: Optional[str] = None
-    update_detection: Optional[str] = None
-    install_verification: Optional[str] = None
+    os_edition_id: str | None = None
+    os_product_name: str | None = None
+    os_build: str | None = None
+    self_service_name: str | None = None
+    self_service_icon: str | None = None
+    install_requirements: str | None = None
+    update_detection: str | None = None
+    install_verification: str | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary format for JSON export."""

@@ -1,8 +1,8 @@
 """Client for interacting with Microsoft Update Catalog."""
 
 import re
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator, Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -17,7 +17,7 @@ class UpdateCatalogClient:
     SEARCH_URL = f"{BASE_URL}/Search.aspx"
     DOWNLOAD_URL = f"{BASE_URL}/DownloadDialog.aspx"
 
-    def __init__(self, session: Optional[requests.Session] = None):
+    def __init__(self, session: requests.Session | None = None):
         """Initialize the catalog client.
 
         Args:
@@ -30,10 +30,10 @@ class UpdateCatalogClient:
 
     def search(
         self,
-        kb: Optional[str] = None,
-        query: Optional[str] = None,
-        os_filter: Optional[str] = None,
-        arch_filter: Optional[str] = None,
+        kb: str | None = None,
+        query: str | None = None,
+        os_filter: str | None = None,
+        arch_filter: str | None = None,
     ) -> Iterator[WindowsUpdate]:
         """Search for updates in the Microsoft Update Catalog.
 
@@ -75,10 +75,10 @@ class UpdateCatalogClient:
 
     def _build_search_query(
         self,
-        kb: Optional[str],
-        query: Optional[str],
-        os_filter: Optional[str],
-        arch_filter: Optional[str],
+        kb: str | None,
+        query: str | None,
+        os_filter: str | None,
+        arch_filter: str | None,
     ) -> str:
         """Build search query string."""
         parts = []
@@ -101,7 +101,7 @@ class UpdateCatalogClient:
 
         return " ".join(parts) if parts else ""
 
-    def _parse_update_row(self, cells: list) -> Optional[WindowsUpdate]:
+    def _parse_update_row(self, cells: list) -> WindowsUpdate | None:
         """Parse a table row into a WindowsUpdate object."""
         try:
             # Extract title and KB
@@ -149,7 +149,7 @@ class UpdateCatalogClient:
         except (IndexError, ValueError, AttributeError):
             return None
 
-    def _extract_architecture(self, title: str) -> Optional[str]:
+    def _extract_architecture(self, title: str) -> str | None:
         """Extract architecture from update title."""
         title_lower = title.lower()
         if "x64" in title_lower or "amd64" in title_lower:
@@ -163,8 +163,8 @@ class UpdateCatalogClient:
     def _matches_filters(
         self,
         update: WindowsUpdate,
-        os_filter: Optional[str],
-        arch_filter: Optional[str],
+        os_filter: str | None,
+        arch_filter: str | None,
     ) -> bool:
         """Check if update matches the specified filters."""
         if os_filter and os_filter.lower() not in update.products.lower():
@@ -176,7 +176,7 @@ class UpdateCatalogClient:
 
         return True
 
-    def get_download_url(self, update_id: str) -> Optional[str]:
+    def get_download_url(self, update_id: str) -> str | None:
         """Get the download URL for a specific update.
 
         Args:
@@ -207,7 +207,7 @@ class UpdateCatalogClient:
         self,
         update: WindowsUpdate,
         output_path: str,
-        progress_callback: Optional[callable] = None,
+        progress_callback: callable | None = None,
     ) -> str:
         """Download an update file.
 
