@@ -1,6 +1,8 @@
 version: 2
 updates:
   - package-ecosystem: pip
+    # One entry at the repo root: Dependabot scans every requirements*.txt
+    # below it, so per-subdirectory entries opened duplicate PRs.
     directory: /
     schedule:
       interval: weekly
@@ -11,31 +13,22 @@ updates:
       prefix: "build"
     labels:
       - dependencies
-    open-pull-requests-limit: 5
-  - package-ecosystem: pip
-    directory: /packagemanager-tui
-    schedule:
-      interval: weekly
-      day: monday
-    cooldown:
-      default-days: 7
-    commit-message:
-      prefix: "build"
-    labels:
-      - dependencies
-    open-pull-requests-limit: 5
-  - package-ecosystem: pip
-    directory: /update-catalog-fetcher
-    schedule:
-      interval: weekly
-      day: monday
-    cooldown:
-      default-days: 7
-    commit-message:
-      prefix: "build"
-    labels:
-      - dependencies
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
+    # Packages that must move together: pytest plugins track pytest's major,
+    # textual pins a rich range, and the sphinx theme tracks sphinx.
+    groups:
+      pytest:
+        patterns:
+          - "pytest"
+          - "pytest-*"
+      textual-rich:
+        patterns:
+          - "textual"
+          - "rich"
+      sphinx:
+        patterns:
+          - "sphinx"
+          - "sphinx-*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -55,4 +48,11 @@ updates:
     groups:
       codeql-action:
         patterns:
+          - "github/codeql-action*"
+      # Every other action in one PR: several share release.yml, so separate
+      # PRs conflict with each other after each merge.
+      actions:
+        patterns:
+          - "*"
+        exclude-patterns:
           - "github/codeql-action*"
