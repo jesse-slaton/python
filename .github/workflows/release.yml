@@ -44,7 +44,7 @@ jobs:
       - name: Create Release
         # Pinned to the commit the former @v1 tag pointed at (v0.1.15), so release behavior is unchanged.
         # Swapping to `gh release` is a behavior change, out of scope for the baseline.
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15 # zizmor: ignore[superfluous-actions]
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v0.1.15 # zizmor: ignore[superfluous-actions]
         with:
           files: packagemanager-tui/dist/packagemanager-tui.exe
           body: |
