@@ -47,7 +47,10 @@ jobs:
         run: |
           set -euo pipefail
           marker='<!-- dependabot-major-review -->'
-          if gh pr view "$PR_URL" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
+          # GraphQL logins drop the [bot] suffix; only the workflow's own bot counts.
+          if gh pr view "$PR_URL" --json comments \
+            --jq '.comments[] | select(.author.login == "github-actions") | .body' \
+            | grep -qF "$marker"; then
             echo "Already commented on $PR_URL"
             exit 0
           fi
