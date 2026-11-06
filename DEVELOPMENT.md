@@ -245,8 +245,7 @@ python/
 │   └── requirements.txt          # App-specific dependencies
 ├── tests/                        # Test files
 ├── requirements-dev.txt          # Development dependencies
-├── pyproject.toml                # Project metadata and tool config
-├── .ruff.toml                    # Ruff configuration
+├── pyproject.toml                # Project metadata and tool config (incl. Ruff)
 ├── sonar-project.properties      # SonarQube configuration
 └── DEVELOPMENT.md                # This file
 
