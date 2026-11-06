@@ -1,11 +1,5 @@
 name: CodeQL
 
-# Template. Render with:
-#   python3 render.py --set default_branch=<branch> common/codeql.yml <out>
-# then edit `language:` to the repo's CodeQL languages (always keep `actions`).
-# No `paths`/`paths-ignore` and no job-level `if:` anywhere in this workflow:
-# every `Analyze (<language>)` job is a required check and must always report.
-
 on:
   push:
     branches: [main]

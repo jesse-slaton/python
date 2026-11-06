@@ -110,7 +110,6 @@ ignore = [
 "**/tests/*" = ["PLR2004", "S101"]   # Allow magic values and bare asserts in tests
 # Baseline suppressions pending burn-down (one reason per entry):
 "packagemanager-tui/package_manager.py" = ["PLR2004"]  # positional indexes into `winget` column-split output; named constants are a refactor
-"update-catalog-fetcher/update_catalog_fetcher/script_generator.py" = ["S608"]  # f-strings render PowerShell script text containing SQL-like words; no database is queried
 
 [tool.ruff.format]
 quote-style = "double"

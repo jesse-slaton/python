@@ -1,5 +1,3 @@
-# Base Dependabot config. Add one entry per language ecosystem present in the
-# repo (pip, cargo, ...), copying the schedule/cooldown/labels block below.
 version: 2
 updates:
   - package-ecosystem: pip

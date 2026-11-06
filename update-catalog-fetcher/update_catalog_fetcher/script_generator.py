@@ -73,7 +73,7 @@ try {{
             Write-Host "Installing MSU package..."
             $Arguments = @(
                 $UpdateFile
-"""  # nosec B608  PowerShell script text, no database is queried
+"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; update.kb comes from re.search(r"KB\d+") (digits only)
 
         if quiet:
             script += """
@@ -237,7 +237,7 @@ try {{
         $Arguments = @(
             '/uninstall'
             "/kb:$KBNumber"
-"""  # nosec B608  PowerShell script text, no database is queried
+"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; update.kb comes from re.search(r"KB\d+") (digits only)
 
         if quiet:
             script += """
