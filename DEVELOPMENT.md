@@ -153,6 +153,7 @@ Configuration is in `sonar-project.properties`.
 ```python
 from typing import List, Dict, Optional
 
+
 def process_packages(packages: List[str], options: Optional[Dict[str, str]] = None) -> bool:
     """Process a list of packages."""
     pass

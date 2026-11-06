@@ -256,9 +256,7 @@ class PackageManagerTUI(App):
         if success_count == len(selected):
             status_bar.set_success(f"Successfully updated {success_count} package(s)")
         else:
-            status_bar.set_error(
-                f"Updated {success_count}/{len(selected)} package(s), some failed"
-            )
+            status_bar.set_error(f"Updated {success_count}/{len(selected)} package(s), some failed")
 
         # Reload updates after upgrading
         await self.load_updates()
@@ -364,9 +362,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Package Manager TUI - Modern terminal interface for managing packages"
     )
-    parser.add_argument(
-        "-U", "--update", action="store_true", help="Check for and install updates"
-    )
+    parser.add_argument("-U", "--update", action="store_true", help="Check for and install updates")
     parser.add_argument(
         "-v", "--version", action="version", version=f"Package Manager TUI v{VERSION}"
     )

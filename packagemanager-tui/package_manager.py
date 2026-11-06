@@ -104,9 +104,7 @@ class WingetManager:
                 name = line[:name_end].strip() if name_end > 0 else pkg_id
 
                 packages.append(
-                    Package(
-                        id=pkg_id, name=name, version=version, source=source, description=""
-                    )
+                    Package(id=pkg_id, name=name, version=version, source=source, description="")
                 )
 
         return packages

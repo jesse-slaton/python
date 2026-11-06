@@ -1,6 +1,5 @@
 """Custom widgets for the Package Manager TUI."""
 
-
 from package_manager import Package
 from textual.app import ComposeResult
 from textual.containers import Container

@@ -211,7 +211,7 @@ When contributing to these projects:
 1. **Input Validation**
    ```python
    # Good: Validate and sanitize
-   if not re.match(r'^KB\d{7}$', kb_number):
+   if not re.match(r"^KB\d{7}$", kb_number):
        raise ValueError("Invalid KB number format")
 
    # Bad: Trust user input
@@ -236,7 +236,7 @@ When contributing to these projects:
        raise ValueError("Path traversal detected")
 
    # Bad: Trust user paths
-   with open(user_input, 'w') as f:
+   with open(user_input, "w") as f:
        f.write(data)
    ```
 

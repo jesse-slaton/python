@@ -28,12 +28,12 @@ class PowerShellScriptGenerator:
         """
         script = f"""<#
 .SYNOPSIS
-    Install {update.kb or 'Windows Update'} via Tanium Deploy
+    Install {update.kb or "Windows Update"} via Tanium Deploy
 
 .DESCRIPTION
     This script installs {update.title}
 
-    KB: {update.kb or 'N/A'}
+    KB: {update.kb or "N/A"}
     Classification: {update.classification}
     Products: {update.products}
 
@@ -48,11 +48,11 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # Set up logging
-$LogPath = Join-Path $env:TEMP "Install-{update.kb or 'Update'}.log"
+$LogPath = Join-Path $env:TEMP "Install-{update.kb or "Update"}.log"
 Start-Transcript -Path $LogPath -Append
 
 try {{
-    Write-Host "Installing {update.kb or 'update'}..."
+    Write-Host "Installing {update.kb or "update"}..."
 
     # Get the update file path
     $UpdateFile = Join-Path $PSScriptRoot "{update_file_name}"
@@ -196,12 +196,12 @@ catch {{
 
         script = f"""<#
 .SYNOPSIS
-    Remove {update.kb or 'Windows Update'} via Tanium Deploy
+    Remove {update.kb or "Windows Update"} via Tanium Deploy
 
 .DESCRIPTION
     This script removes {update.title}
 
-    KB: {update.kb or 'N/A'}
+    KB: {update.kb or "N/A"}
     Classification: {update.classification}
     Products: {update.products}
 
@@ -216,11 +216,11 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # Set up logging
-$LogPath = Join-Path $env:TEMP "Remove-{update.kb or 'Update'}.log"
+$LogPath = Join-Path $env:TEMP "Remove-{update.kb or "Update"}.log"
 Start-Transcript -Path $LogPath -Append
 
 try {{
-    Write-Host "Removing {update.kb or 'update'}..."
+    Write-Host "Removing {update.kb or "update"}..."
 
     $KBNumber = "{kb_number}"
 

@@ -182,7 +182,9 @@ Examples:
             file_ext = ".bin"
 
         # Download update
-        update_file_name = f"{args.os or 'windows'}-KB{kb_safe}-{args.arch}{file_ext}".replace(" ", "-").lower()
+        update_file_name = f"{args.os or 'windows'}-KB{kb_safe}-{args.arch}{file_ext}".replace(
+            " ", "-"
+        ).lower()
         update_file_path = package_dir / update_file_name
 
         print(f"\nDownloading to: {update_file_name}")
@@ -254,14 +256,14 @@ Examples:
             f.write(readme_content)
         print("Created: README.md")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Package created successfully!")
         print(f"Location: {package_dir}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("\nPackage contents:")
         for item in sorted(package_dir.iterdir()):
             size = item.stat().st_size
-            size_str = f"{size:,} bytes" if size < 1024*1024 else f"{size/(1024*1024):.1f} MB"
+            size_str = f"{size:,} bytes" if size < 1024 * 1024 else f"{size / (1024 * 1024):.1f} MB"
             print(f"  - {item.name} ({size_str})")
 
         print("\nNext steps:")
@@ -278,6 +280,7 @@ Examples:
     except Exception as e:
         print(f"\nError: {e}", file=sys.stderr)
         import traceback  # noqa: PLC0415  deferred import limits traceback import to the error path
+
         traceback.print_exc()
         return 1
 

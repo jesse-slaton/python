@@ -216,17 +216,17 @@ class MetadataGenerator:
         Returns:
             README content in Markdown format
         """
-        return f"""# {update.kb or 'Windows Update'} - Tanium Deploy Package
+        return f"""# {update.kb or "Windows Update"} - Tanium Deploy Package
 
 ## Update Information
 
 - **Title**: {update.title}
-- **KB**: {update.kb or 'N/A'}
+- **KB**: {update.kb or "N/A"}
 - **Classification**: {update.classification}
 - **Products**: {update.products}
-- **Architecture**: {update.architecture or 'N/A'}
+- **Architecture**: {update.architecture or "N/A"}
 - **Size**: {update.size}
-- **Last Updated**: {update.last_updated.strftime('%Y-%m-%d')}
+- **Last Updated**: {update.last_updated.strftime("%Y-%m-%d")}
 - **Update ID**: {update.update_id}
 
 ## Package Contents
