@@ -80,11 +80,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3.9 is the oldest interpreter this project actually imports on:
-        # models.py annotates with `list[int]`, which raises TypeError on 3.8
-        # even though requires-python says >=3.8. Moving the matrix floor back
-        # to 3.8 belongs with fixing that (tracked separately).
-        python-version: ["3.9", "3.12"]
+        # 3.10 is the oldest interpreter setup-python offers on ubuntu-latest
+        # (3.9 and older are unavailable there). Separately, models.py annotates
+        # with `list[int]`, which raises TypeError on 3.8 even though
+        # requires-python says >=3.8. Moving the floor back down belongs with
+        # fixing that (tracked separately).
+        python-version: ["3.10", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
