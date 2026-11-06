@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from .models import WindowsUpdate
+from .models import WindowsUpdate, validate_kb
 
 
 class PowerShellScriptGenerator:
@@ -26,6 +26,8 @@ class PowerShellScriptGenerator:
         Returns:
             PowerShell script content
         """
+        if update.kb:
+            validate_kb(update.kb)
         script = f"""<#
 .SYNOPSIS
     Install {update.kb or "Windows Update"} via Tanium Deploy
@@ -73,7 +75,7 @@ try {{
             Write-Host "Installing MSU package..."
             $Arguments = @(
                 $UpdateFile
-"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; update.kb comes from re.search(r"KB\d+") (digits only)
+"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; kb validated by validate_kb() (optional KB prefix + digits)
 
         if quiet:
             script += """
@@ -192,6 +194,8 @@ catch {{
         Returns:
             PowerShell script content
         """
+        if update.kb:
+            validate_kb(update.kb)
         kb_number = update.kb_number if update.kb else "UNKNOWN"
 
         script = f"""<#
@@ -237,7 +241,7 @@ try {{
         $Arguments = @(
             '/uninstall'
             "/kb:$KBNumber"
-"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; update.kb comes from re.search(r"KB\d+") (digits only)
+"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; kb validated by validate_kb() (optional KB prefix + digits)
 
         if quiet:
             script += """

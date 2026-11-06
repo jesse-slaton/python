@@ -1,7 +1,21 @@
 """Data models for Windows updates."""
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
+
+_KB_PATTERN = re.compile(r"(?:KB)?\d+", re.IGNORECASE)
+
+
+def validate_kb(kb: str) -> str:
+    """Return ``kb`` unchanged if it is an optional KB prefix plus digits.
+
+    Raises:
+        ValueError: If ``kb`` does not fully match ``(?:KB)?\\d+`` (case-insensitive).
+    """
+    if _KB_PATTERN.fullmatch(kb) is None:
+        raise ValueError(f"invalid KB identifier: {kb!r}")
+    return kb
 
 
 @dataclass

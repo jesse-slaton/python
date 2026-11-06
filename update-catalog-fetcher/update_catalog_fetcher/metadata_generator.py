@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from .models import TaniumDeployMetadata, WindowsUpdate
+from .models import TaniumDeployMetadata, WindowsUpdate, validate_kb
 
 
 class MetadataGenerator:
@@ -34,6 +34,8 @@ class MetadataGenerator:
         Returns:
             TaniumDeployMetadata object
         """
+        if update.kb:
+            validate_kb(update.kb)
         # Parse file size to MB
         size_mb = MetadataGenerator._parse_size_to_mb(update.size)
 
@@ -169,11 +171,12 @@ class MetadataGenerator:
         if not update.kb:
             return ""
 
+        validate_kb(update.kb)
         kb_number = update.kb_number or update.kb.replace("KB", "")
 
         # WQL query to check if KB is installed
         # Uses Win32_QuickFixEngineering WMI class
-        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'  # noqa: S608  # nosec B608  kb_number comes only from re.search(r"KB\d+", title) in catalog_client.py (digits only), so no injectable characters
+        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'  # noqa: S608  # nosec B608  kb validated by validate_kb() (optional KB prefix + digits)
 
         return wql_query  # noqa: RET504  named variable documents the WQL result; no refactor in baseline
 
@@ -215,6 +218,9 @@ class MetadataGenerator:
         Returns:
             README content in Markdown format
         """
+        if update.kb:
+            validate_kb(update.kb)
+
         return f"""# {update.kb or "Windows Update"} - Tanium Deploy Package
 
 ## Update Information
