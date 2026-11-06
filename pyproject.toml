@@ -76,6 +76,7 @@ exclude = [
     "node_modules",
     "venv",
 ]
+src = ["packagemanager-tui", "update-catalog-fetcher"]  # treat local modules as first-party for import sorting
 target-version = "py312"
 line-length = 100
 indent-width = 4

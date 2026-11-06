@@ -9,11 +9,12 @@ import argparse
 import asyncio
 import sys
 
-from package_manager import WingetManager
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import Button, Footer, Header, Label, Static, TabbedContent, TabPane
+
+from package_manager import WingetManager
 from updater import Updater
 from widgets import PackageTable, SearchBox, StatusBar
 
