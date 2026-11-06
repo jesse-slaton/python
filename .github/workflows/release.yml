@@ -14,10 +14,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
 
@@ -34,11 +36,13 @@ jobs:
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        # Pinned to the commit the former @v1 tag pointed at (v0.1.15), so release behavior is unchanged.
+        # Swapping to `gh release` is a behavior change, out of scope for the baseline.
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15 # zizmor: ignore[superfluous-actions]
         with:
           files: packagemanager-tui/dist/packagemanager-tui.exe
           body: |

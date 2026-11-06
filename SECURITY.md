@@ -22,8 +22,8 @@ We take security vulnerabilities seriously. If you discover a security issue in 
 
 Instead, please report security vulnerabilities by:
 
-1. **Using GitHub Security Advisories** (preferred)
-   - Go to the [Security tab](https://github.com/jesse-slaton/python/security/advisories)
+1. **Using GitHub private vulnerability reporting** (preferred)
+   - Go to the [Security tab](https://github.com/jesse-slaton/python/security/advisories/new)
    - Click "Report a vulnerability"
    - Fill out the form with details
 

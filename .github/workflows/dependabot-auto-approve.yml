@@ -1,0 +1,58 @@
+# Arm GitHub's native auto-merge for Dependabot patch and minor updates; leave
+# one comment on major updates asking for human review. There is no approve
+# step: the ruleset requires 0 approvals, so arming auto-merge is what matters,
+# and GitHub merges once the ruleset's required checks pass.
+#
+# The arming condition is a positive allowlist of update types. An empty,
+# unknown or new update-type value arms nothing.
+#
+# Prerequisite: Settings > General > "Allow auto-merge" enabled.
+# Do not add to repos without a ruleset (nothing would enforce CI before merge).
+
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write # gh pr merge --auto needs it to enable auto-merge
+      pull-requests: write # enable auto-merge and post the major-update comment
+    concurrency:
+      group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Enable auto-merge for patch and minor updates
+        if: >-
+          contains(fromJSON('["version-update:semver-patch", "version-update:semver-minor"]'),
+          steps.metadata.outputs.update-type)
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment once on major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          set -euo pipefail
+          marker='<!-- dependabot-major-review -->'
+          if gh pr view "$PR_URL" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
+            echo "Already commented on $PR_URL"
+            exit 0
+          fi
+          body="$marker"$'\n'"This is a major version update, so auto-merge is not armed. Please review the changelog and merge manually."
+          gh pr comment "$PR_URL" --body "$body"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

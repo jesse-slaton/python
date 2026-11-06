@@ -1,0 +1,13 @@
+# typos-cli configuration
+# https://github.com/crate-ci/typos
+
+[files]
+extend-exclude = [
+    "*.min.js",
+    "*.min.css",
+    "*.lock",
+]
+
+[default.extend-words]
+# Words that look like typos but are correct here, for example:
+# teh = "teh"

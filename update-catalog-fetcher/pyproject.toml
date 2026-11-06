@@ -49,12 +49,10 @@ Issues = "https://github.com/jesse-slaton/python/issues"
 packages = ["update_catalog_fetcher"]
 
 [tool.ruff]
-line-length = 100
+# Inherit the repo-wide rule set (including S) from the root pyproject.toml;
+# only the interpreter floor differs for this project.
+extend = "../pyproject.toml"
 target-version = "py38"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = []
 
 [tool.mypy]
 python_version = "3.8"
