@@ -69,8 +69,26 @@ jobs:
             -r update-catalog-fetcher/requirements.txt \
             -r packagemanager-tui/requirements.txt
 
+      # Ratchet: the repo carries a known mypy backlog (#19). Fail only when
+      # the error count rises above the baseline; lower MYPY_BASELINE as #19
+      # burns it down, and replace this with a plain `mypy .` at zero.
       - name: Mypy
-        run: mypy .
+        env:
+          MYPY_BASELINE: "11"
+        run: |
+          set -uo pipefail
+          mypy . | tee mypy.log || true  # exit code judged by the count below
+          # A crash or config error prints no summary line; never read that as 0 errors.
+          if ! grep -qE '^(Found [0-9]+ errors? in|Success: no issues found)' mypy.log; then
+            echo "::error::mypy did not produce a result summary"
+            exit 1
+          fi
+          count=$(grep -c ': error:' mypy.log || true)
+          echo "mypy errors: ${count} (baseline ${MYPY_BASELINE})"
+          if [ "${count}" -gt "${MYPY_BASELINE}" ]; then
+            echo "::error::mypy errors rose from ${MYPY_BASELINE} to ${count}"
+            exit 1
+          fi
 
   test-leg:
     name: Test leg (update-catalog-fetcher, py${{ matrix.python-version }})
