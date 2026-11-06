@@ -69,6 +69,13 @@ class TestGeneratorsValidateKb(unittest.TestCase):
         out = MetadataGenerator._generate_wql_verification(make_update(GOOD_KB))
         self.assertIn(GOOD_KB, out)
 
+    def test_wql_mixed_case_prefix(self):
+        for kb in ("KB5034441", "kb5034441", "Kb5034441", "kB5034441", "5034441"):
+            with self.subTest(kb=kb):
+                self.assertEqual(make_update(kb).kb_number, "5034441")
+                out = MetadataGenerator._generate_wql_verification(make_update(kb))
+                self.assertIn('HotFixID="KB5034441"', out)
+
     def test_readme(self):
         # generate_readme interpolates the non-existent Path.ctime (pre-existing
         # bug, out of scope here); stub it so the good-KB path can be exercised.

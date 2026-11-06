@@ -35,9 +35,9 @@ class WindowsUpdate:
 
     @property
     def kb_number(self) -> str | None:
-        """Extract KB number without 'KB' prefix."""
+        """Extract KB number without the 'KB' prefix (any case)."""
         if self.kb:
-            return self.kb.replace("KB", "").replace("kb", "")
+            return re.sub(r"^kb", "", self.kb, flags=re.IGNORECASE)
         return None
 
 
