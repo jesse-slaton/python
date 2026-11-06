@@ -174,7 +174,7 @@ class MetadataGenerator:
 
         # WQL query to check if KB is installed
         # Uses Win32_QuickFixEngineering WMI class
-        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'  # noqa: S608  WQL text is emitted into generated package metadata, never executed or sent to a database by this code; input hardening is a burn-down item
+        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'  # noqa: S608  # nosec B608  WQL text is emitted into generated package metadata, never executed or sent to a database by this code; input hardening is a burn-down item
 
         return wql_query  # noqa: RET504  named variable documents the WQL result; no refactor in baseline
 

@@ -73,7 +73,7 @@ try {{
             Write-Host "Installing MSU package..."
             $Arguments = @(
                 $UpdateFile
-"""
+"""  # nosec B608  PowerShell script text, no database is queried
 
         if quiet:
             script += """
@@ -237,7 +237,7 @@ try {{
         $Arguments = @(
             '/uninstall'
             "/kb:$KBNumber"
-"""
+"""  # nosec B608  PowerShell script text, no database is queried
 
         if quiet:
             script += """
