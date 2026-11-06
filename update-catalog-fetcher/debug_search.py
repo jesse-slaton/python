@@ -44,7 +44,7 @@ else:
 
             input_elem = first_cell.find("input")
             if input_elem:
-                print(f"Input found!")
+                print("Input found!")
                 print(f"  ID: {input_elem.get('id')}")
                 print(f"  Value: {input_elem.get('value')}")
                 print(f"  Type: {input_elem.get('type')}")

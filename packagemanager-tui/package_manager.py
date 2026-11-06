@@ -1,11 +1,8 @@
 """Package manager integration module for winget and other package sources."""
 
 import asyncio
-import json
-import subprocess
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
 
 
 class PackageSource(Enum):
@@ -23,7 +20,7 @@ class Package:
     id: str
     name: str
     version: str
-    available_version: Optional[str] = None
+    available_version: str | None = None
     source: str = "winget"
     description: str = ""
 
@@ -37,7 +34,7 @@ class WingetManager:
     """Winget package manager integration."""
 
     @staticmethod
-    async def run_command(args: List[str]) -> tuple[str, str, int]:
+    async def run_command(args: list[str]) -> tuple[str, str, int]:
         """Run a winget command asynchronously.
 
         Args:
@@ -60,7 +57,7 @@ class WingetManager:
         )
 
     @staticmethod
-    async def search(query: str) -> List[Package]:
+    async def search(query: str) -> list[Package]:
         """Search for packages.
 
         Args:
@@ -115,7 +112,7 @@ class WingetManager:
         return packages
 
     @staticmethod
-    async def get_installed() -> List[Package]:
+    async def get_installed() -> list[Package]:
         """Get list of installed packages.
 
         Returns:
@@ -167,7 +164,7 @@ class WingetManager:
         return packages
 
     @staticmethod
-    async def get_updates() -> List[Package]:
+    async def get_updates() -> list[Package]:
         """Get list of packages with updates available.
 
         Returns:
@@ -261,7 +258,7 @@ class WingetManager:
         return returncode == 0
 
     @staticmethod
-    async def upgrade_all(package_ids: List[str]) -> dict[str, bool]:
+    async def upgrade_all(package_ids: list[str]) -> dict[str, bool]:
         """Upgrade multiple packages.
 
         Args:

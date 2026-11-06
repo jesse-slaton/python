@@ -3,7 +3,6 @@
 import re
 from datetime import datetime
 from typing import Iterator, Optional
-from urllib.parse import urlencode
 
 import requests
 from bs4 import BeautifulSoup
@@ -155,9 +154,9 @@ class UpdateCatalogClient:
         title_lower = title.lower()
         if "x64" in title_lower or "amd64" in title_lower:
             return "x64"
-        elif "arm64" in title_lower:
+        if "arm64" in title_lower:
             return "ARM64"
-        elif "x86" in title_lower or "32-bit" in title_lower:
+        if "x86" in title_lower or "32-bit" in title_lower:
             return "x86"
         return None
 
@@ -189,7 +188,7 @@ class UpdateCatalogClient:
         # Post request to get download dialog
         response = self.session.post(
             self.DOWNLOAD_URL,
-            data={"updateIDs": f"[{{\"size\":0,\"updateID\":\"{update_id}\",\"uidInfo\":\"{update_id}\"}}]"},
+            data={"updateIDs": f'[{{"size":0,"updateID":"{update_id}","uidInfo":"{update_id}"}}]'},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         response.raise_for_status()

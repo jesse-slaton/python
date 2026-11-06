@@ -1,14 +1,11 @@
 """Custom widgets for the Package Manager TUI."""
 
-from typing import List, Set
-
-from rich.text import Text
-from textual.app import ComposeResult
-from textual.containers import Container, Vertical
-from textual.widgets import DataTable, Input, Label, Static
-from textual.message import Message
 
 from package_manager import Package
+from textual.app import ComposeResult
+from textual.containers import Container
+from textual.message import Message
+from textual.widgets import DataTable, Input, Label, Static
 
 
 class PackageTable(DataTable):
@@ -28,8 +25,8 @@ class PackageTable(DataTable):
         """
         super().__init__(*args, **kwargs)
         self.show_updates = show_updates
-        self.selected_packages: Set[str] = set()
-        self.packages: List[Package] = []
+        self.selected_packages: set[str] = set()
+        self.packages: list[Package] = []
         self.cursor_type = "row"
 
     def on_mount(self) -> None:
@@ -44,7 +41,7 @@ class PackageTable(DataTable):
 
         self.add_column("Source", width=10, key="source")
 
-    def load_packages(self, packages: List[Package]) -> None:
+    def load_packages(self, packages: list[Package]) -> None:
         """Load packages into the table.
 
         Args:
@@ -92,7 +89,7 @@ class PackageTable(DataTable):
                 self.selected_packages.remove(pkg.id)
                 self.update_cell(pkg.id, "checkbox", "☐")
 
-    def get_selected_packages(self) -> List[Package]:
+    def get_selected_packages(self) -> list[Package]:
         """Get list of selected packages.
 
         Returns:

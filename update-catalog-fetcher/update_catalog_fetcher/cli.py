@@ -2,9 +2,7 @@
 
 import argparse
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from .catalog_client import UpdateCatalogClient
 from .metadata_generator import MetadataGenerator
@@ -254,10 +252,10 @@ Examples:
         readme_path = package_dir / "README.md"
         with open(readme_path, "w", encoding="utf-8") as f:
             f.write(readme_content)
-        print(f"Created: README.md")
+        print("Created: README.md")
 
         print(f"\n{'='*60}")
-        print(f"Package created successfully!")
+        print("Package created successfully!")
         print(f"Location: {package_dir}")
         print(f"{'='*60}")
         print("\nPackage contents:")

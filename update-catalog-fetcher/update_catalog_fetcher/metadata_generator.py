@@ -125,14 +125,13 @@ class MetadataGenerator:
             # Convert to MB
             if unit == "KB":
                 return max(int(value / 1024), 1)
-            elif unit == "MB":
+            if unit == "MB":
                 return max(int(value), 1)
-            elif unit == "GB":
+            if unit == "GB":
                 return max(int(value * 1024), 1)
-            elif unit == "TB":
+            if unit == "TB":
                 return max(int(value * 1024 * 1024), 1)
-            else:
-                return 100  # Default
+            return 100  # Default
         except (ValueError, AttributeError):
             return 100  # Default
 
@@ -217,7 +216,7 @@ class MetadataGenerator:
         Returns:
             README content in Markdown format
         """
-        return f'''# {update.kb or 'Windows Update'} - Tanium Deploy Package
+        return f"""# {update.kb or 'Windows Update'} - Tanium Deploy Package
 
 ## Update Information
 
@@ -281,4 +280,4 @@ To remove manually:
 This package was generated using `update-catalog-fetcher`.
 
 **Generated on**: {Path.ctime}
-'''
+"""

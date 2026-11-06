@@ -1,7 +1,6 @@
 """PowerShell wrapper script generator for Tanium Deploy packages."""
 
 from pathlib import Path
-from typing import Optional
 
 from .models import WindowsUpdate
 
@@ -27,7 +26,7 @@ class PowerShellScriptGenerator:
         Returns:
             PowerShell script content
         """
-        script = f'''<#
+        script = f"""<#
 .SYNOPSIS
     Install {update.kb or 'Windows Update'} via Tanium Deploy
 
@@ -74,19 +73,19 @@ try {{
             Write-Host "Installing MSU package..."
             $Arguments = @(
                 $UpdateFile
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/norestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath 'wusa.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -100,19 +99,19 @@ try {{
                 '/Online'
                 '/Add-Package'
                 "/PackagePath:$UpdateFile"
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/Quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/NoRestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath 'dism.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -123,19 +122,19 @@ try {{
             # Executable installer
             Write-Host "Installing EXE package..."
             $Arguments = @(
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/norestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath $UpdateFile -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -174,7 +173,7 @@ catch {{
     Stop-Transcript
     exit 1
 }}
-'''
+"""
         return script
 
     @staticmethod
@@ -195,7 +194,7 @@ catch {{
         """
         kb_number = update.kb_number if update.kb else "UNKNOWN"
 
-        script = f'''<#
+        script = f"""<#
 .SYNOPSIS
     Remove {update.kb or 'Windows Update'} via Tanium Deploy
 
@@ -238,19 +237,19 @@ try {{
         $Arguments = @(
             '/uninstall'
             "/kb:$KBNumber"
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
             '/quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
             '/norestart'
-'''
+"""
 
-        script += '''
+        script += """
         )
 
         $Process = Start-Process -FilePath 'wusa.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -275,19 +274,19 @@ try {{
                 '/Online'
                 '/Remove-Package'
                 "/PackageName:$TargetPackage"
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/Quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/NoRestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath 'dism.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -327,7 +326,7 @@ catch {{
     Stop-Transcript
     exit 1
 }}
-'''
+"""
         return script
 
     @staticmethod
