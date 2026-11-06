@@ -25,7 +25,7 @@ Python tool to fetch Windows updates from Microsoft Update Catalog and generate 
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.12+
 - See individual project requirements
 
 ## Structure
