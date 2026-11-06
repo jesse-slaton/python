@@ -14,6 +14,21 @@ updates:
     labels:
       - dependencies
     open-pull-requests-limit: 10
+    # Packages that must move together: pytest plugins track pytest's major,
+    # textual pins a rich range, and the sphinx theme tracks sphinx.
+    groups:
+      pytest:
+        patterns:
+          - "pytest"
+          - "pytest-*"
+      textual-rich:
+        patterns:
+          - "textual"
+          - "rich"
+      sphinx:
+        patterns:
+          - "sphinx"
+          - "sphinx-*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -33,4 +48,11 @@ updates:
     groups:
       codeql-action:
         patterns:
+          - "github/codeql-action*"
+      # Every other action in one PR: several share release.yml, so separate
+      # PRs conflict with each other after each merge.
+      actions:
+        patterns:
+          - "*"
+        exclude-patterns:
           - "github/codeql-action*"
