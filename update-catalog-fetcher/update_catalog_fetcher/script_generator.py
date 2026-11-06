@@ -342,7 +342,7 @@ catch {{
         """
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, "w", encoding="utf-8-sig") as f:
+        with open(output_path, "w", encoding="utf-8-sig") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             f.write(script_content)
 
         return output_path

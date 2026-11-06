@@ -80,7 +80,7 @@ class PackageManagerTUI(App):
     }
     """
 
-    BINDINGS = [
+    BINDINGS = [  # noqa: RUF012  Textual BINDINGS is a framework-defined class attribute, never mutated
         Binding("q", "quit", "Quit"),
         Binding("ctrl+r", "refresh", "Refresh"),
     ]

@@ -94,7 +94,7 @@ class WingetManager:
                 # Everything before version is the ID
                 # Find where version starts by checking from the end
                 line_parts = line.split()
-                version_index = -2 if len(line_parts) >= 4 else -1
+                version_index = -2 if len(line_parts) >= 4 else -1  # noqa: F841  dead assignment; deleting it is a code change deferred to burn-down
 
                 # Get ID (usually second to last or third to last segment)
                 pkg_id = parts[-3] if len(parts) >= 4 else parts[0]
@@ -142,7 +142,7 @@ class WingetManager:
                 available = parts[-3] if len(parts) >= 4 and parts[-3] != parts[-2] else None
 
                 # Get package ID
-                if len(parts) >= 4:
+                if len(parts) >= 4:  # noqa: SIM108  explicit if/else is clearer than the nested ternary; no refactor in baseline
                     pkg_id = parts[-4] if available else parts[-3]
                 else:
                     pkg_id = parts[0]

@@ -65,7 +65,7 @@ class UpdateCatalogClient:
         # Parse each row
         for row in results_table.find_all("tr"):
             cells = row.find_all("td")
-            if len(cells) < 6:
+            if len(cells) < 6:  # noqa: PLR2004  minimum cell count of a catalog result row; named constant is a refactor deferred to burn-down
                 continue
 
             # Extract update data
@@ -170,7 +170,7 @@ class UpdateCatalogClient:
         if os_filter and os_filter.lower() not in update.products.lower():
             return False
 
-        if arch_filter and update.architecture:
+        if arch_filter and update.architecture:  # noqa: SIM102  nested form kept to preserve existing control flow
             if arch_filter.lower() != update.architecture.lower():
                 return False
 
@@ -233,7 +233,7 @@ class UpdateCatalogClient:
         total_size = int(response.headers.get("content-length", 0))
         downloaded = 0
 
-        with open(output_path, "wb") as f:
+        with open(output_path, "wb") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)

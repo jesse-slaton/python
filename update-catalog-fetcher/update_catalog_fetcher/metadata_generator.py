@@ -12,7 +12,7 @@ class MetadataGenerator:
     """Generates Tanium Deploy package metadata."""
 
     @staticmethod
-    def generate_metadata(
+    def generate_metadata(  # noqa: PLR0913, PLR0917  public constructor signature; changing it alters the API
         update: WindowsUpdate,
         install_script: str,
         remove_script: str,
@@ -102,7 +102,7 @@ class MetadataGenerator:
         )
 
     @staticmethod
-    def _parse_size_to_mb(size_str: str) -> int:
+    def _parse_size_to_mb(size_str: str) -> int:  # noqa: PLR0911  early-return validation ladder; refactor deferred to burn-down
         """Parse size string to megabytes.
 
         Args:
@@ -174,9 +174,9 @@ class MetadataGenerator:
 
         # WQL query to check if KB is installed
         # Uses Win32_QuickFixEngineering WMI class
-        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'
+        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'  # noqa: S608  WQL text is emitted into generated package metadata, never executed or sent to a database by this code; input hardening is a burn-down item
 
-        return wql_query
+        return wql_query  # noqa: RET504  named variable documents the WQL result; no refactor in baseline
 
     @staticmethod
     def save_metadata(metadata: TaniumDeployMetadata, output_path: Path) -> Path:
@@ -191,7 +191,7 @@ class MetadataGenerator:
         """
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, "w", encoding="utf-8") as f:
+        with open(output_path, "w", encoding="utf-8") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             json.dump(metadata.to_dict(), f, indent=2)
 
         return output_path

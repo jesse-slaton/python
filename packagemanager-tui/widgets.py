@@ -11,7 +11,7 @@ from textual.widgets import DataTable, Input, Label, Static
 class PackageTable(DataTable):
     """Data table for displaying packages with checkbox selection."""
 
-    BINDINGS = [
+    BINDINGS = [  # noqa: RUF012  Textual BINDINGS is a framework-defined class attribute, never mutated
         ("space", "toggle_selection", "Toggle Selection"),
         ("ctrl+a", "select_all", "Select All"),
         ("ctrl+d", "deselect_all", "Deselect All"),

@@ -18,7 +18,7 @@ def progress_callback(downloaded: int, total: int) -> None:
         print(f"\rDownloading: {downloaded} bytes", end="")
 
 
-def main() -> int:
+def main() -> int:  # noqa: PLR0911, PLR0912, PLR0915  CLI entry point; splitting main() is a refactor deferred to burn-down
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Fetch Windows updates from Microsoft Update Catalog and generate Tanium Deploy packages",
@@ -250,7 +250,7 @@ Examples:
             metadata_file_name,
         )
         readme_path = package_dir / "README.md"
-        with open(readme_path, "w", encoding="utf-8") as f:
+        with open(readme_path, "w", encoding="utf-8") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             f.write(readme_content)
         print("Created: README.md")
 
@@ -277,7 +277,7 @@ Examples:
         return 130
     except Exception as e:
         print(f"\nError: {e}", file=sys.stderr)
-        import traceback
+        import traceback  # noqa: PLC0415  deferred import limits traceback import to the error path
         traceback.print_exc()
         return 1
 
