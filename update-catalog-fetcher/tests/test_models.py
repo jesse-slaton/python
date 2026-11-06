@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from update_catalog_fetcher.models import TaniumDeployMetadata, WindowsUpdate
 
 

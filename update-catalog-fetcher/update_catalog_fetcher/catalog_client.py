@@ -1,9 +1,8 @@
 """Client for interacting with Microsoft Update Catalog."""
 
 import re
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator, Optional
-from urllib.parse import urlencode
 
 import requests
 from bs4 import BeautifulSoup
@@ -18,23 +17,23 @@ class UpdateCatalogClient:
     SEARCH_URL = f"{BASE_URL}/Search.aspx"
     DOWNLOAD_URL = f"{BASE_URL}/DownloadDialog.aspx"
 
-    def __init__(self, session: Optional[requests.Session] = None):
+    def __init__(self, session: requests.Session | None = None):
         """Initialize the catalog client.
 
         Args:
             session: Optional requests session for connection pooling
         """
         self.session = session or requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
+        self.session.headers.update(
+            {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        )
 
     def search(
         self,
-        kb: Optional[str] = None,
-        query: Optional[str] = None,
-        os_filter: Optional[str] = None,
-        arch_filter: Optional[str] = None,
+        kb: str | None = None,
+        query: str | None = None,
+        os_filter: str | None = None,
+        arch_filter: str | None = None,
     ) -> Iterator[WindowsUpdate]:
         """Search for updates in the Microsoft Update Catalog.
 
@@ -66,7 +65,7 @@ class UpdateCatalogClient:
         # Parse each row
         for row in results_table.find_all("tr"):
             cells = row.find_all("td")
-            if len(cells) < 6:
+            if len(cells) < 6:  # noqa: PLR2004  minimum cell count of a catalog result row; named constant is a refactor deferred to burn-down
                 continue
 
             # Extract update data
@@ -76,10 +75,10 @@ class UpdateCatalogClient:
 
     def _build_search_query(
         self,
-        kb: Optional[str],
-        query: Optional[str],
-        os_filter: Optional[str],
-        arch_filter: Optional[str],
+        kb: str | None,
+        query: str | None,
+        os_filter: str | None,
+        arch_filter: str | None,
     ) -> str:
         """Build search query string."""
         parts = []
@@ -102,7 +101,7 @@ class UpdateCatalogClient:
 
         return " ".join(parts) if parts else ""
 
-    def _parse_update_row(self, cells: list) -> Optional[WindowsUpdate]:
+    def _parse_update_row(self, cells: list) -> WindowsUpdate | None:
         """Parse a table row into a WindowsUpdate object."""
         try:
             # Extract title and KB
@@ -150,34 +149,34 @@ class UpdateCatalogClient:
         except (IndexError, ValueError, AttributeError):
             return None
 
-    def _extract_architecture(self, title: str) -> Optional[str]:
+    def _extract_architecture(self, title: str) -> str | None:
         """Extract architecture from update title."""
         title_lower = title.lower()
         if "x64" in title_lower or "amd64" in title_lower:
             return "x64"
-        elif "arm64" in title_lower:
+        if "arm64" in title_lower:
             return "ARM64"
-        elif "x86" in title_lower or "32-bit" in title_lower:
+        if "x86" in title_lower or "32-bit" in title_lower:
             return "x86"
         return None
 
     def _matches_filters(
         self,
         update: WindowsUpdate,
-        os_filter: Optional[str],
-        arch_filter: Optional[str],
+        os_filter: str | None,
+        arch_filter: str | None,
     ) -> bool:
         """Check if update matches the specified filters."""
         if os_filter and os_filter.lower() not in update.products.lower():
             return False
 
-        if arch_filter and update.architecture:
+        if arch_filter and update.architecture:  # noqa: SIM102  nested form kept to preserve existing control flow
             if arch_filter.lower() != update.architecture.lower():
                 return False
 
         return True
 
-    def get_download_url(self, update_id: str) -> Optional[str]:
+    def get_download_url(self, update_id: str) -> str | None:
         """Get the download URL for a specific update.
 
         Args:
@@ -189,7 +188,7 @@ class UpdateCatalogClient:
         # Post request to get download dialog
         response = self.session.post(
             self.DOWNLOAD_URL,
-            data={"updateIDs": f"[{{\"size\":0,\"updateID\":\"{update_id}\",\"uidInfo\":\"{update_id}\"}}]"},
+            data={"updateIDs": f'[{{"size":0,"updateID":"{update_id}","uidInfo":"{update_id}"}}]'},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         response.raise_for_status()
@@ -208,7 +207,7 @@ class UpdateCatalogClient:
         self,
         update: WindowsUpdate,
         output_path: str,
-        progress_callback: Optional[callable] = None,
+        progress_callback: callable | None = None,
     ) -> str:
         """Download an update file.
 
@@ -234,7 +233,7 @@ class UpdateCatalogClient:
         total_size = int(response.headers.get("content-length", 0))
         downloaded = 0
 
-        with open(output_path, "wb") as f:
+        with open(output_path, "wb") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)

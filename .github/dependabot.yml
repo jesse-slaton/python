@@ -1,0 +1,58 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "build"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
+  - package-ecosystem: pip
+    directory: /packagemanager-tui
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "build"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
+  - package-ecosystem: pip
+    directory: /update-catalog-fetcher
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "build"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
+    # Sub-actions of one repo share a commit SHA, but Dependabot names each
+    # subpath as its own dependency and may bump one and not the rest. A split
+    # codeql-action makes init/analyze refuse each other's config and fails every
+    # CodeQL job, so the family moves in one PR.
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"

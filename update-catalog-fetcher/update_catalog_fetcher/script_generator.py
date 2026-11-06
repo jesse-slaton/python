@@ -1,9 +1,8 @@
 """PowerShell wrapper script generator for Tanium Deploy packages."""
 
 from pathlib import Path
-from typing import Optional
 
-from .models import WindowsUpdate
+from .models import WindowsUpdate, validate_kb
 
 
 class PowerShellScriptGenerator:
@@ -27,14 +26,16 @@ class PowerShellScriptGenerator:
         Returns:
             PowerShell script content
         """
-        script = f'''<#
+        if update.kb:
+            validate_kb(update.kb)
+        script = f"""<#
 .SYNOPSIS
-    Install {update.kb or 'Windows Update'} via Tanium Deploy
+    Install {update.kb or "Windows Update"} via Tanium Deploy
 
 .DESCRIPTION
     This script installs {update.title}
 
-    KB: {update.kb or 'N/A'}
+    KB: {update.kb or "N/A"}
     Classification: {update.classification}
     Products: {update.products}
 
@@ -49,11 +50,11 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # Set up logging
-$LogPath = Join-Path $env:TEMP "Install-{update.kb or 'Update'}.log"
+$LogPath = Join-Path $env:TEMP "Install-{update.kb or "Update"}.log"
 Start-Transcript -Path $LogPath -Append
 
 try {{
-    Write-Host "Installing {update.kb or 'update'}..."
+    Write-Host "Installing {update.kb or "update"}..."
 
     # Get the update file path
     $UpdateFile = Join-Path $PSScriptRoot "{update_file_name}"
@@ -74,19 +75,19 @@ try {{
             Write-Host "Installing MSU package..."
             $Arguments = @(
                 $UpdateFile
-'''
+"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; kb validated by validate_kb() (optional KB prefix + digits)
 
         if quiet:
-            script += '''
+            script += """
                 '/quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/norestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath 'wusa.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -100,19 +101,19 @@ try {{
                 '/Online'
                 '/Add-Package'
                 "/PackagePath:$UpdateFile"
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/Quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/NoRestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath 'dism.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -123,19 +124,19 @@ try {{
             # Executable installer
             Write-Host "Installing EXE package..."
             $Arguments = @(
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/norestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath $UpdateFile -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -174,7 +175,7 @@ catch {{
     Stop-Transcript
     exit 1
 }}
-'''
+"""
         return script
 
     @staticmethod
@@ -193,16 +194,18 @@ catch {{
         Returns:
             PowerShell script content
         """
+        if update.kb:
+            validate_kb(update.kb)
         kb_number = update.kb_number if update.kb else "UNKNOWN"
 
-        script = f'''<#
+        script = f"""<#
 .SYNOPSIS
-    Remove {update.kb or 'Windows Update'} via Tanium Deploy
+    Remove {update.kb or "Windows Update"} via Tanium Deploy
 
 .DESCRIPTION
     This script removes {update.title}
 
-    KB: {update.kb or 'N/A'}
+    KB: {update.kb or "N/A"}
     Classification: {update.classification}
     Products: {update.products}
 
@@ -217,11 +220,11 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # Set up logging
-$LogPath = Join-Path $env:TEMP "Remove-{update.kb or 'Update'}.log"
+$LogPath = Join-Path $env:TEMP "Remove-{update.kb or "Update"}.log"
 Start-Transcript -Path $LogPath -Append
 
 try {{
-    Write-Host "Removing {update.kb or 'update'}..."
+    Write-Host "Removing {update.kb or "update"}..."
 
     $KBNumber = "{kb_number}"
 
@@ -238,19 +241,19 @@ try {{
         $Arguments = @(
             '/uninstall'
             "/kb:$KBNumber"
-'''
+"""  # noqa: S608  # nosec B608  PowerShell script text, not SQL; kb validated by validate_kb() (optional KB prefix + digits)
 
         if quiet:
-            script += '''
+            script += """
             '/quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
             '/norestart'
-'''
+"""
 
-        script += '''
+        script += """
         )
 
         $Process = Start-Process -FilePath 'wusa.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -275,19 +278,19 @@ try {{
                 '/Online'
                 '/Remove-Package'
                 "/PackageName:$TargetPackage"
-'''
+"""
 
         if quiet:
-            script += '''
+            script += """
                 '/Quiet'
-'''
+"""
 
         if no_restart:
-            script += '''
+            script += """
                 '/NoRestart'
-'''
+"""
 
-        script += '''
+        script += """
             )
 
             $Process = Start-Process -FilePath 'dism.exe' -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
@@ -327,7 +330,7 @@ catch {{
     Stop-Transcript
     exit 1
 }}
-'''
+"""
         return script
 
     @staticmethod
@@ -343,7 +346,7 @@ catch {{
         """
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, "w", encoding="utf-8-sig") as f:
+        with open(output_path, "w", encoding="utf-8-sig") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             f.write(script_content)
 
         return output_path

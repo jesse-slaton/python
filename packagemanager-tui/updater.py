@@ -1,13 +1,10 @@
 """Self-update functionality for the Package Manager TUI."""
 
 import asyncio
-import hashlib
-import os
 import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -21,7 +18,7 @@ class Updater:
     VERSION = "1.0.0"
 
     @staticmethod
-    async def check_for_updates() -> Optional[str]:
+    async def check_for_updates() -> str | None:
         """Check if a new version is available.
 
         Returns:
@@ -46,7 +43,7 @@ class Updater:
             return None
 
     @staticmethod
-    async def download_update(version: str) -> Optional[Path]:
+    async def download_update(version: str) -> Path | None:
         """Download the update file.
 
         Args:
@@ -115,7 +112,7 @@ class Updater:
             # Replace with new version
             try:
                 shutil.copy2(new_exe_path, current_exe)
-                print(f"✓ Update applied successfully!")
+                print("✓ Update applied successfully!")
                 print(f"Restart the application to use version {Updater.VERSION}")
 
                 # Clean up backup
@@ -161,9 +158,8 @@ class Updater:
             # Clean up downloaded file
             update_file.unlink()
             return True
-        else:
-            print("❌ Failed to apply update")
-            return False
+        print("❌ Failed to apply update")
+        return False
 
 
 async def main() -> None:

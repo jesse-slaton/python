@@ -3,23 +3,22 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional
 
-from .models import TaniumDeployMetadata, WindowsUpdate
+from .models import TaniumDeployMetadata, WindowsUpdate, validate_kb
 
 
 class MetadataGenerator:
     """Generates Tanium Deploy package metadata."""
 
     @staticmethod
-    def generate_metadata(
+    def generate_metadata(  # noqa: PLR0913, PLR0917  public constructor signature; changing it alters the API
         update: WindowsUpdate,
         install_script: str,
         remove_script: str,
         update_file_name: str,
-        os_edition_id: Optional[str] = None,
-        os_product_name: Optional[str] = None,
-        os_build: Optional[str] = None,
+        os_edition_id: str | None = None,
+        os_product_name: str | None = None,
+        os_build: str | None = None,
     ) -> TaniumDeployMetadata:
         """Generate Tanium Deploy metadata for an update.
 
@@ -35,6 +34,8 @@ class MetadataGenerator:
         Returns:
             TaniumDeployMetadata object
         """
+        if update.kb:
+            validate_kb(update.kb)
         # Parse file size to MB
         size_mb = MetadataGenerator._parse_size_to_mb(update.size)
 
@@ -102,7 +103,7 @@ class MetadataGenerator:
         )
 
     @staticmethod
-    def _parse_size_to_mb(size_str: str) -> int:
+    def _parse_size_to_mb(size_str: str) -> int:  # noqa: PLR0911  early-return validation ladder; refactor deferred to burn-down
         """Parse size string to megabytes.
 
         Args:
@@ -125,14 +126,13 @@ class MetadataGenerator:
             # Convert to MB
             if unit == "KB":
                 return max(int(value / 1024), 1)
-            elif unit == "MB":
+            if unit == "MB":
                 return max(int(value), 1)
-            elif unit == "GB":
+            if unit == "GB":
                 return max(int(value * 1024), 1)
-            elif unit == "TB":
+            if unit == "TB":
                 return max(int(value * 1024 * 1024), 1)
-            else:
-                return 100  # Default
+            return 100  # Default
         except (ValueError, AttributeError):
             return 100  # Default
 
@@ -171,13 +171,14 @@ class MetadataGenerator:
         if not update.kb:
             return ""
 
+        validate_kb(update.kb)
         kb_number = update.kb_number or update.kb.replace("KB", "")
 
         # WQL query to check if KB is installed
         # Uses Win32_QuickFixEngineering WMI class
-        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'
+        wql_query = f'SELECT HotFixID FROM Win32_QuickFixEngineering WHERE HotFixID="KB{kb_number}"'  # noqa: S608  # nosec B608  kb validated by validate_kb() (optional KB prefix + digits)
 
-        return wql_query
+        return wql_query  # noqa: RET504  named variable documents the WQL result; no refactor in baseline
 
     @staticmethod
     def save_metadata(metadata: TaniumDeployMetadata, output_path: Path) -> Path:
@@ -192,7 +193,7 @@ class MetadataGenerator:
         """
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, "w", encoding="utf-8") as f:
+        with open(output_path, "w", encoding="utf-8") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             json.dump(metadata.to_dict(), f, indent=2)
 
         return output_path
@@ -217,17 +218,20 @@ class MetadataGenerator:
         Returns:
             README content in Markdown format
         """
-        return f'''# {update.kb or 'Windows Update'} - Tanium Deploy Package
+        if update.kb:
+            validate_kb(update.kb)
+
+        return f"""# {update.kb or "Windows Update"} - Tanium Deploy Package
 
 ## Update Information
 
 - **Title**: {update.title}
-- **KB**: {update.kb or 'N/A'}
+- **KB**: {update.kb or "N/A"}
 - **Classification**: {update.classification}
 - **Products**: {update.products}
-- **Architecture**: {update.architecture or 'N/A'}
+- **Architecture**: {update.architecture or "N/A"}
 - **Size**: {update.size}
-- **Last Updated**: {update.last_updated.strftime('%Y-%m-%d')}
+- **Last Updated**: {update.last_updated.strftime("%Y-%m-%d")}
 - **Update ID**: {update.update_id}
 
 ## Package Contents
@@ -281,4 +285,4 @@ To remove manually:
 This package was generated using `update-catalog-fetcher`.
 
 **Generated on**: {Path.ctime}
-'''
+"""

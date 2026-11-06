@@ -22,8 +22,8 @@ We take security vulnerabilities seriously. If you discover a security issue in 
 
 Instead, please report security vulnerabilities by:
 
-1. **Using GitHub Security Advisories** (preferred)
-   - Go to the [Security tab](https://github.com/jesse-slaton/python/security/advisories)
+1. **Using GitHub private vulnerability reporting** (preferred)
+   - Go to the [Security tab](https://github.com/jesse-slaton/python/security/advisories/new)
    - Click "Report a vulnerability"
    - Fill out the form with details
 
@@ -211,7 +211,7 @@ When contributing to these projects:
 1. **Input Validation**
    ```python
    # Good: Validate and sanitize
-   if not re.match(r'^KB\d{7}$', kb_number):
+   if not re.match(r"^KB\d{7}$", kb_number):
        raise ValueError("Invalid KB number format")
 
    # Bad: Trust user input
@@ -236,7 +236,7 @@ When contributing to these projects:
        raise ValueError("Path traversal detected")
 
    # Bad: Trust user paths
-   with open(user_input, 'w') as f:
+   with open(user_input, "w") as f:
        f.write(data)
    ```
 

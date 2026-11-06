@@ -11,10 +11,10 @@ import sys
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import Button, Footer, Header, Label, Static, TabbedContent, TabPane
 
-from package_manager import Package, WingetManager
+from package_manager import WingetManager
 from updater import Updater
 from widgets import PackageTable, SearchBox, StatusBar
 
@@ -81,7 +81,7 @@ class PackageManagerTUI(App):
     }
     """
 
-    BINDINGS = [
+    BINDINGS = [  # noqa: RUF012  Textual BINDINGS is a framework-defined class attribute, never mutated
         Binding("q", "quit", "Quit"),
         Binding("ctrl+r", "refresh", "Refresh"),
     ]
@@ -190,7 +190,7 @@ class PackageManagerTUI(App):
                 self.discover_table.load_packages(packages)
                 status_bar.set_ready(len(packages))
         except Exception as e:
-            status_bar.set_error(f"Search failed: {str(e)}")
+            status_bar.set_error(f"Search failed: {e!s}")
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events.
@@ -257,9 +257,7 @@ class PackageManagerTUI(App):
         if success_count == len(selected):
             status_bar.set_success(f"Successfully updated {success_count} package(s)")
         else:
-            status_bar.set_error(
-                f"Updated {success_count}/{len(selected)} package(s), some failed"
-            )
+            status_bar.set_error(f"Updated {success_count}/{len(selected)} package(s), some failed")
 
         # Reload updates after upgrading
         await self.load_updates()
@@ -331,7 +329,7 @@ class PackageManagerTUI(App):
             self.updates_table.load_packages(packages)
             status_bar.set_ready(len(packages))
         except Exception as e:
-            status_bar.set_error(f"Failed to load updates: {str(e)}")
+            status_bar.set_error(f"Failed to load updates: {e!s}")
 
     async def load_installed(self) -> None:
         """Load installed packages."""
@@ -346,7 +344,7 @@ class PackageManagerTUI(App):
             self.installed_table.load_packages(packages)
             status_bar.set_ready(len(packages))
         except Exception as e:
-            status_bar.set_error(f"Failed to load installed packages: {str(e)}")
+            status_bar.set_error(f"Failed to load installed packages: {e!s}")
 
     async def action_refresh(self) -> None:
         """Refresh the current tab."""
@@ -365,9 +363,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Package Manager TUI - Modern terminal interface for managing packages"
     )
-    parser.add_argument(
-        "-U", "--update", action="store_true", help="Check for and install updates"
-    )
+    parser.add_argument("-U", "--update", action="store_true", help="Check for and install updates")
     parser.add_argument(
         "-v", "--version", action="version", version=f"Package Manager TUI v{VERSION}"
     )

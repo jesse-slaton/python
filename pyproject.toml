@@ -52,6 +52,31 @@ exclude_lines = [
 
 [tool.ruff]
 # See: https://docs.astral.sh/ruff/
+# Consolidated from the former .ruff.toml (which took precedence over this table).
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+src = ["packagemanager-tui", "update-catalog-fetcher"]  # treat local modules as first-party for import sorting
 target-version = "py312"
 line-length = 100
 indent-width = 4
@@ -74,6 +99,7 @@ select = [
     "ERA",    # eradicate (commented code)
     "PL",     # pylint
     "RUF",    # ruff-specific rules
+    "S",      # flake8-bandit (security)
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
@@ -81,7 +107,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
-"tests/*" = ["PLR2004"]   # Allow magic values in tests
+# Glob was "tests/*", which never matched update-catalog-fetcher/tests.
+"**/tests/*" = ["PLR2004", "S101"]   # Allow magic values and bare asserts in tests
+# Baseline suppressions pending burn-down (one reason per entry):
+"packagemanager-tui/package_manager.py" = ["PLR2004"]  # positional indexes into `winget` column-split output; named constants are a refactor
 
 [tool.ruff.format]
 quote-style = "double"

@@ -8,9 +8,9 @@ search_url = "https://www.catalog.update.microsoft.com/Search.aspx"
 params = {"q": "KB5066835 Windows 11 x64"}
 
 session = requests.Session()
-session.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-})
+session.headers.update(
+    {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+)
 
 response = session.get(search_url, params=params)
 soup = BeautifulSoup(response.text, "html.parser")
@@ -44,7 +44,7 @@ else:
 
             input_elem = first_cell.find("input")
             if input_elem:
-                print(f"Input found!")
+                print("Input found!")
                 print(f"  ID: {input_elem.get('id')}")
                 print(f"  Value: {input_elem.get('value')}")
                 print(f"  Type: {input_elem.get('type')}")

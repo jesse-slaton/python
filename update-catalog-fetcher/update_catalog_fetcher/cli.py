@@ -2,9 +2,7 @@
 
 import argparse
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from .catalog_client import UpdateCatalogClient
 from .metadata_generator import MetadataGenerator
@@ -20,7 +18,7 @@ def progress_callback(downloaded: int, total: int) -> None:
         print(f"\rDownloading: {downloaded} bytes", end="")
 
 
-def main() -> int:
+def main() -> int:  # noqa: PLR0911, PLR0912, PLR0915  CLI entry point; splitting main() is a refactor deferred to burn-down
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Fetch Windows updates from Microsoft Update Catalog and generate Tanium Deploy packages",
@@ -184,7 +182,9 @@ Examples:
             file_ext = ".bin"
 
         # Download update
-        update_file_name = f"{args.os or 'windows'}-KB{kb_safe}-{args.arch}{file_ext}".replace(" ", "-").lower()
+        update_file_name = f"{args.os or 'windows'}-KB{kb_safe}-{args.arch}{file_ext}".replace(
+            " ", "-"
+        ).lower()
         update_file_path = package_dir / update_file_name
 
         print(f"\nDownloading to: {update_file_name}")
@@ -252,18 +252,18 @@ Examples:
             metadata_file_name,
         )
         readme_path = package_dir / "README.md"
-        with open(readme_path, "w", encoding="utf-8") as f:
+        with open(readme_path, "w", encoding="utf-8") as f:  # noqa: PTH123  open() is fine here; Path migration is a refactor deferred to burn-down
             f.write(readme_content)
-        print(f"Created: README.md")
+        print("Created: README.md")
 
-        print(f"\n{'='*60}")
-        print(f"Package created successfully!")
+        print(f"\n{'=' * 60}")
+        print("Package created successfully!")
         print(f"Location: {package_dir}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("\nPackage contents:")
         for item in sorted(package_dir.iterdir()):
             size = item.stat().st_size
-            size_str = f"{size:,} bytes" if size < 1024*1024 else f"{size/(1024*1024):.1f} MB"
+            size_str = f"{size:,} bytes" if size < 1024 * 1024 else f"{size / (1024 * 1024):.1f} MB"
             print(f"  - {item.name} ({size_str})")
 
         print("\nNext steps:")
@@ -279,7 +279,8 @@ Examples:
         return 130
     except Exception as e:
         print(f"\nError: {e}", file=sys.stderr)
-        import traceback
+        import traceback  # noqa: PLC0415  deferred import limits traceback import to the error path
+
         traceback.print_exc()
         return 1
 

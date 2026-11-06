@@ -153,6 +153,7 @@ Configuration is in `sonar-project.properties`.
 ```python
 from typing import List, Dict, Optional
 
+
 def process_packages(packages: List[str], options: Optional[Dict[str, str]] = None) -> bool:
     """Process a list of packages."""
     pass
@@ -244,8 +245,7 @@ python/
 │   └── requirements.txt          # App-specific dependencies
 ├── tests/                        # Test files
 ├── requirements-dev.txt          # Development dependencies
-├── pyproject.toml                # Project metadata and tool config
-├── .ruff.toml                    # Ruff configuration
+├── pyproject.toml                # Project metadata and tool config (incl. Ruff)
 ├── sonar-project.properties      # SonarQube configuration
 └── DEVELOPMENT.md                # This file
 

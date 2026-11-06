@@ -177,7 +177,7 @@ Example metadata:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.12+
 - beautifulsoup4
 - requests
 
