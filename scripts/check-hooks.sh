@@ -11,15 +11,13 @@ MARKER="# installed by scripts/install-hooks.sh"
 FIX="Fix: run 'bash scripts/install-hooks.sh' from this repo"
 
 # core.hooksPath set anywhere that applies to any worktree bypasses the shims.
-bad=0
-while IFS= read -r wt; do
-    while IFS=$'\t' read -r scope value; do
-        [ -n "${scope:-}" ] || continue
-        echo "FAIL: worktree $wt has core.hooksPath='$value' (scope: $scope); it must be unset so the shared hook shims run" >&2
-        bad=1
-    done < <(git -C "$wt" config --show-scope --get-all core.hooksPath 2>/dev/null || true)
-done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
-if [ "$bad" -ne 0 ]; then
+# shellcheck source=scripts/lib-hookspath.sh
+. scripts/lib-hookspath.sh
+hookspath_scan || { echo "$FIX" >&2; exit 1; }
+if [ "${#HP_WT[@]}" -gt 0 ]; then
+    for i in "${!HP_WT[@]}"; do
+        echo "FAIL: worktree ${HP_WT[$i]} has core.hooksPath='${HP_VALUE[$i]}' (scope: ${HP_SCOPE[$i]}); it must be unset so the shared hook shims run" >&2
+    done
     echo "$FIX" >&2
     exit 1
 fi

@@ -66,7 +66,12 @@ if [ "${#missing[@]}" -gt 0 ]; then
         echo "pre-push: cannot fetch ${#missing[@]} destination tip(s) from '$dest'; run 'git fetch $remote' and retry" >&2
         exit 1
     fi
-    tips+=("${missing[@]}")
+    # Keep only tips that resolve to a commit: a tag may point at a tree or a
+    # blob, which can never be an ancestor of a pushed commit and would make
+    # rev-list reject the exclusion as a bad revision.
+    for tip in "${missing[@]}"; do
+        git cat-file -e "${tip}^{commit}" 2>/dev/null && tips+=("$tip")
+    done
 fi
 exclude=()
 for tip in ${tips[@]+"${tips[@]}"}; do exclude+=("^$tip"); done

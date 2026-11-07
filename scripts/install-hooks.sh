@@ -23,36 +23,36 @@ MARKER="# installed by scripts/install-hooks.sh"
 # (system, global, local, and each linked worktree's own config). The one
 # value tolerated is the earlier installer's local `.githooks`, which this run
 # migrates away. Anything else would bypass the shared shims.
+# shellcheck source=scripts/lib-hookspath.sh
+. scripts/lib-hookspath.sh
+hookspath_scan || { echo "FAIL: could not read core.hooksPath everywhere; nothing was changed." >&2; exit 1; }
 legacy=0
-conflicts=""
-while IFS= read -r wt; do
-    while IFS=$'\t' read -r scope value; do
-        [ -n "${scope:-}" ] || continue
-        if [ "$scope" = "local" ] && [ "$value" = ".githooks" ]; then
-            legacy=1
-            continue
-        fi
-        # Only worktree-scoped values differ per worktree; report shared
-        # scopes once, against this checkout.
-        where="$wt"
-        [ "$scope" = "worktree" ] || where="$PWD"
-        conflicts="$conflicts$where\t$scope\t$value\n"
-    done < <(git -C "$wt" config --show-scope --get-all core.hooksPath 2>/dev/null || true)
-done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
-
-if [ -n "$conflicts" ]; then
-    echo "FAIL: core.hooksPath is set where it would bypass the shared hook shims; nothing was changed." >&2
-    printf '%b' "$conflicts" | sort -u | while IFS=$'\t' read -r wt scope value; do
-        echo "  worktree $wt: '$value' (scope: $scope)" >&2
-        case "$scope" in
-            local | global | system | worktree)
-                echo "    move any hooks you need from '$value' into .githooks/, then: git -C '$wt' config --$scope --unset core.hooksPath" >&2
-                ;;
-            *)
-                echo "    it comes from the '$scope' scope (GIT_CONFIG_* or -c); remove it there" >&2
-                ;;
-        esac
-    done
+nconf=0
+for i in ${HP_WT[@]+"${!HP_WT[@]}"}; do
+    scope="${HP_SCOPE[$i]}" value="${HP_VALUE[$i]}" wt="${HP_WT[$i]}"
+    if [ "$scope" = "local" ] && [ "$value" = ".githooks" ]; then
+        legacy=1
+        continue
+    fi
+    # Shared scopes repeat once per worktree; report each only once.
+    if [ "$scope" != "worktree" ]; then
+        [ "$wt" = "$(pwd -P)" ] || continue
+    fi
+    if [ "$nconf" -eq 0 ]; then
+        echo "FAIL: core.hooksPath is set where it would bypass the shared hook shims; nothing was changed." >&2
+    fi
+    nconf=$((nconf + 1))
+    echo "  worktree $wt: '$value' (scope: $scope)" >&2
+    case "$scope" in
+        local | global | system | worktree)
+            echo "    move any hooks you need from '$value' into .githooks/, then: git -C '$wt' config --$scope --unset core.hooksPath" >&2
+            ;;
+        *)
+            echo "    it comes from the '$scope' scope (GIT_CONFIG_* or -c); remove it there" >&2
+            ;;
+    esac
+done
+if [ "$nconf" -gt 0 ]; then
     echo "Then re-run: bash scripts/install-hooks.sh" >&2
     exit 1
 fi
