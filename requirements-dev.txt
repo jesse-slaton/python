@@ -14,7 +14,7 @@ mypy>=1.5.0
 # Static analysis
 pylint>=3.0.0
 bandit>=1.7.5  # Security analysis
-vulture>=2.9.1  # Dead code detection
+vulture>=2.16  # Dead code detection
 
 # Type checking
 types-setuptools
