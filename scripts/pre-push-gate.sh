@@ -44,6 +44,7 @@ export PYTHONDONTWRITEBYTECODE=1
 failed=()
 skipped=()
 
+# have CMD -- true when CMD is on PATH.
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # pin NAME -> "NAME==x.y.z" as pinned in ci.yml (first match); fails the gate
@@ -58,6 +59,7 @@ pin() {
     printf '%s' "$line"
 }
 
+# step_ok / step_fail / step_skip -- print and record a step outcome.
 step_ok() { echo "OK"; }
 step_fail() { echo "FAIL: $1"; failed+=("$1"); }
 step_skip() {
@@ -95,6 +97,7 @@ tool_run() {
     fi
 }
 
+# available TOOL -- true when TOOL can run via uv or from PATH.
 available() { have uv || have "$1"; }
 
 RUFF="$(pin ruff)"
@@ -126,21 +129,22 @@ else step_skip "pre-commit" "neither pre-commit nor uv installed"; fi
 echo ""
 echo "=== pytest (update-catalog-fetcher) ==="
 # pytest exits 5 when it collects no tests; that must fail the gate, as in CI.
+# fetcher_tests -- run the update-catalog-fetcher suite as the CI Test legs do.
 fetcher_tests() {
     (
         cd update-catalog-fetcher
         if have uv; then
             uv run --no-project --python "$PY" --with-requirements requirements-dev.txt -- python -m pytest
-        elif have python3; then
+        elif have python3 && python3 -c 'import pytest' 2>/dev/null; then
             python3 -m pytest
         else
             exit 127
         fi
     )
 }
-if have uv || have python3; then
+if have uv || { have python3 && python3 -c 'import pytest' 2>/dev/null; }; then
     run_step "pytest" fetcher_tests
-else step_skip "pytest" "neither uv nor python3 installed"; fi
+else step_skip "pytest" "neither uv nor a python3 with pytest installed"; fi
 
 echo ""
 echo "=== bandit ($BANDIT) ==="
@@ -156,6 +160,7 @@ echo "=== pip-audit ($PIPAUDIT) ==="
 # libpython, so ensurepip dies with SIGABRT), so prefer a system interpreter
 # >= 3.12 (e.g. Homebrew) and fall back to uv's managed 3.12 (fine on Linux).
 # Only the audit uses this; resolution of these pins does not depend on 3.12.
+# audit_all -- pip-audit every requirements file; nonzero if any audit fails.
 audit_all() {
     local req rc=0 audit_py
     audit_py="$PY"
@@ -189,6 +194,7 @@ else step_skip "zizmor" "neither uvx nor zizmor on PATH"; fi
 
 echo ""
 echo "=== mypy ratchet ($MYPY) ==="
+# mypy_ratchet -- fail when mypy errors exceed MYPY_BASELINE from ci.yml.
 mypy_ratchet() {
     local baseline log="$TMP/mypy.log" count
     baseline="$(grep -oE 'MYPY_BASELINE: "[0-9]+"' "$CI_YML" | head -n1 | grep -oE '[0-9]+')" || true
@@ -211,6 +217,7 @@ mypy_ratchet() {
         return 1
     fi
 }
+# mypy_cmd -- run mypy via uv, or from PATH when uv is absent.
 mypy_cmd() {
     if have uv; then
         uv run --no-project --python "$PY" \

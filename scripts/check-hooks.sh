@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# Hook paths are relative to the repo root; resolve them from there.
+cd "$(git rev-parse --show-toplevel)"
+
 hooks_path=$(git config --get core.hooksPath 2>/dev/null || true)
 
 if [ "$hooks_path" != ".githooks" ]; then

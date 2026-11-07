@@ -4,11 +4,13 @@
 #
 # Order:
 #   1. Signatures. For every pushed non-delete ref, each commit that is being
-#      pushed (remote_sha..local_sha, or, for a new branch, every commit no
-#      remote-tracking ref has) must show %G? == G. Only commits not already on
-#      the remote are checked: GitHub's own squash-merge commits on main are
-#      GPG-signed and read `N` locally (no gpg installed), so main's history is
-#      never scanned. Offending SHAs are printed on failure. main requires
+#      pushed must show %G? == G. "Being pushed" means reachable from the local
+#      sha and from NO ref the destination remote holds right now: the tips come
+#      from `git ls-remote` (live state, not possibly-stale remote-tracking
+#      refs, and only the destination remote, not every remote). So GitHub's
+#      own squash-merge commits on main, which are GPG-signed and read `N`
+#      locally (no gpg installed), are never scanned, even after a merge or
+#      rebase onto main. Offending SHAs are printed on failure. main requires
 #      signed commits.
 #   2. The gate: exec scripts/pre-push-gate.sh.
 #
@@ -38,18 +40,28 @@ if [ ! -x "$GATE" ]; then
 fi
 
 zero_re='^(0{40}|0{64})$'
+remote="${1:?pre-push: git did not pass the remote name}"
+
+# Live tips of every ref on the destination remote. A failed read fails the
+# push closed: without it the "already on the remote" exclusion is unknown.
+if ! remote_refs="$(git ls-remote "$remote")"; then
+    echo "pre-push: cannot read refs from remote '$remote'; refusing to guess which commits are new" >&2
+    exit 1
+fi
+# Only tips present locally can bound rev-list; an absent tip cannot be an
+# ancestor of anything we are pushing, so dropping it excludes nothing.
+exclude=()
+while read -r tip _; do
+    [ -n "${tip:-}" ] || continue
+    git cat-file -e "${tip}^{commit}" 2>/dev/null && exclude+=("^$tip")
+done <<<"$remote_refs"
+
 bad=0
-while read -r _ lsha _ rsha; do
+while read -r _ lsha _ _; do
     [ -n "${lsha:-}" ] || continue
     [[ "$lsha" =~ $zero_re ]] && continue # delete: sends nothing
-    if [[ "${rsha:-}" =~ $zero_re ]] || ! git cat-file -e "${rsha:-x}^{commit}" 2>/dev/null; then
-        # New remote ref: only commits no remote-tracking ref already has.
-        range=("$lsha" --not --remotes)
-    else
-        range=("$rsha..$lsha")
-    fi
-    shas="$(git rev-list "${range[@]}" 2>/dev/null)" || {
-        echo "pre-push: cannot list commits for ${range[*]}" >&2
+    shas="$(git rev-list "$lsha" ${exclude[@]+"${exclude[@]}"})" || {
+        echo "pre-push: cannot list commits for $lsha" >&2
         exit 1
     }
     for sha in $shas; do
