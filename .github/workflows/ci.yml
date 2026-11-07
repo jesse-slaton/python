@@ -180,8 +180,8 @@ jobs:
       # The CI hash locks themselves (every tool CI installs, plus the uv
       # resolver). --disable-pip audits exactly the pinned versions in the lock
       # (no resolution; hashes are required). Markers are evaluated for this
-      # runner (Linux, py3.12), so win32-only release-lock entries are audited
-      # in release.yml on windows-latest instead.
+      # runner (Linux, py3.12), so win32-only entries are audited by the
+      # security-windows job below.
       - name: Audit CI locks (pip-audit)
         run: |
           set -euo pipefail
@@ -198,3 +198,36 @@ jobs:
           # action uploads SARIF and never fails the job.
           advanced-security: "false"
           annotations: "true"
+
+  # Not a required check. Audits every CI lock with Windows markers: the
+  # Security job runs on Linux and skips win32-only entries (colorama, pefile,
+  # pywin32-ctypes), and release.yml builds on Windows. Runs on every PR so the
+  # Windows audit is exercised before a release tag, not first at one.
+  security-windows:
+    name: Security (Windows locks)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install security tooling
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/security.lock
+
+      - name: Audit CI locks (pip-audit, Windows markers)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for lock in .github/ci-requirements/*.lock .github/ci-tools/lock-tools.lock; do
+            echo "::group::pip-audit ${lock}"
+            pip-audit --disable-pip --require-hashes -r "${lock}"
+            echo "::endgroup::"
+          done

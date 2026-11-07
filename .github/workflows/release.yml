@@ -25,17 +25,22 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Audit the release lock with Windows markers (the CI Security job runs on
-      # Linux and skips win32-only entries). pip-audit comes from the hash-locked
-      # security lock, in its own venv so it never mixes with the build env.
-      - name: Audit release lock (pip-audit, Windows markers)
+      # Release gate: re-audit every CI lock with Windows markers at tag time
+      # (the same audit as CI's security-windows job, which runs on every PR).
+      # pip-audit comes from the hash-locked security lock, in its own venv so
+      # it never mixes with the build env.
+      - name: Audit CI locks (pip-audit, Windows markers)
         shell: bash
         run: |
           set -euo pipefail
           python -m venv "${RUNNER_TEMP}/audit-venv"
           audit_py="${RUNNER_TEMP}/audit-venv/Scripts/python.exe"
           "${audit_py}" -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/security.lock
-          "${audit_py}" -m pip_audit --disable-pip --require-hashes -r .github/ci-requirements/release.lock
+          for lock in .github/ci-requirements/*.lock .github/ci-tools/lock-tools.lock; do
+            echo "::group::pip-audit ${lock}"
+            "${audit_py}" -m pip_audit --disable-pip --require-hashes -r "${lock}"
+            echo "::endgroup::"
+          done
 
       - name: Install dependencies
         # Hash-locked: TUI requirements + pyinstaller (.github/ci-requirements/release.in).
