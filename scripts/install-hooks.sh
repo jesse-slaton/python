@@ -8,9 +8,19 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 current=$(git config --get core.hooksPath 2>/dev/null || true)
 if [ -n "$current" ] && [ "$current" != ".githooks" ]; then
-    echo "FAIL: core.hooksPath is already '$current'; refusing to replace it." >&2
-    echo "Move any hooks you still need from '$current' into .githooks/, then run:" >&2
-    echo "  git config --unset core.hooksPath && bash scripts/install-hooks.sh" >&2
+    # Name the config scope that sets it: the unset command differs per scope.
+    scope=$(git config --show-scope --get core.hooksPath 2>/dev/null | cut -f1)
+    echo "FAIL: core.hooksPath is already '$current' (scope: ${scope:-unknown}); refusing to replace it." >&2
+    echo "Move any hooks you still need from '$current' into .githooks/, then:" >&2
+    case "$scope" in
+        local | global | system | worktree)
+            echo "  git config --$scope --unset core.hooksPath && bash scripts/install-hooks.sh" >&2
+            ;;
+        *)
+            echo "  remove it where it is set (it comes from the '${scope:-unknown}' scope, e.g. GIT_CONFIG_* or -c);" >&2
+            echo "  locate it with: git config --show-origin --show-scope --get-all core.hooksPath" >&2
+            ;;
+    esac
     exit 1
 fi
 git config core.hooksPath .githooks
