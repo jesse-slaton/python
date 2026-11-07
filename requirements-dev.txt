@@ -12,7 +12,7 @@ black>=26.10.1
 mypy>=2.4.1
 
 # Static analysis
-pylint>=3.0.0
+pylint>=4.1.3
 bandit>=1.9.4  # Security analysis
 vulture>=2.16  # Dead code detection
 
