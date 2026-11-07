@@ -31,14 +31,23 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Every CI install is hash-locked (Scorecard Pinned-Dependencies): the
+      # locks live in .github/ci-requirements/ (see DEVELOPMENT.md, "Updating
+      # CI tool pins").
       - name: Install ruff
-        run: python -m pip install --disable-pip-version-check ruff==0.17.4
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/lint.lock
 
       - name: Ruff check
         run: ruff check .
 
       - name: Ruff format check
         run: ruff format --check .
+
+      - name: Install uv (hash-pinned, the lock-freshness resolver)
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-tools/lock-tools.lock
+
+      - name: Verify CI locks are fresh (re-compile and compare)
+        run: bash scripts/check-ci-locks-fresh.sh
 
       - name: Pre-commit hooks
         uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
@@ -63,11 +72,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --disable-pip-version-check mypy==2.4.1 \
-            types-requests==2.33.0.20261030 \
-            -r update-catalog-fetcher/requirements.txt \
-            -r packagemanager-tui/requirements.txt
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/typecheck.lock
 
       # Ratchet: the repo carries a known mypy backlog (#19). Fail only when
       # the error count rises above the baseline; lower MYPY_BASELINE as #19
@@ -112,9 +117,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # One universal lock serves both matrix Pythons (environment markers).
       - name: Install dependencies
-        working-directory: update-catalog-fetcher
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/test.lock
 
       # pytest exits 5 when it collects no tests, which fails the step on purpose.
       - name: Pytest
@@ -154,7 +159,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install security tooling
-        run: python -m pip install --disable-pip-version-check "bandit[toml]==1.9.4" pip-audit==2.10.1
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/security.lock
 
       # -c pyproject.toml reads [tool.bandit]; -ll reports medium severity and up.
       - name: Bandit
@@ -172,6 +177,20 @@ jobs:
             echo "::endgroup::"
           done
 
+      # The CI hash locks themselves (every tool CI installs, plus the uv
+      # resolver). --disable-pip audits exactly the pinned versions in the lock
+      # (no resolution; hashes are required). Markers are evaluated for this
+      # runner (Linux, py3.12), so win32-only entries are audited by the
+      # security-windows job below.
+      - name: Audit CI locks (pip-audit)
+        run: |
+          set -euo pipefail
+          for lock in .github/ci-requirements/*.lock .github/ci-tools/lock-tools.lock; do
+            echo "::group::pip-audit ${lock}"
+            pip-audit --disable-pip --require-hashes -r "${lock}"
+            echo "::endgroup::"
+          done
+
       - name: Zizmor
         uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
         with:
@@ -179,3 +198,36 @@ jobs:
           # action uploads SARIF and never fails the job.
           advanced-security: "false"
           annotations: "true"
+
+  # Not a required check. Audits every CI lock with Windows markers: the
+  # Security job runs on Linux and skips win32-only entries (colorama, pefile,
+  # pywin32-ctypes), and release.yml builds on Windows. Runs on every PR so the
+  # Windows audit is exercised before a release tag, not first at one.
+  security-windows:
+    name: Security (Windows locks)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install security tooling
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/security.lock
+
+      - name: Audit CI locks (pip-audit, Windows markers)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for lock in .github/ci-requirements/*.lock .github/ci-tools/lock-tools.lock; do
+            echo "::group::pip-audit ${lock}"
+            pip-audit --disable-pip --require-hashes -r "${lock}"
+            echo "::endgroup::"
+          done

@@ -241,16 +241,46 @@ replace the shim). `bash scripts/check-hooks.sh` verifies the wiring. The hooks 
   skip switch; `PUSH_GATE` accepts only empty or `full`.
 
 The gate mirrors `.github/workflows/ci.yml` (ruff, pre-commit, fetcher pytest,
-bandit, pip-audit, zizmor, the mypy ratchet, actionlint). Run it by hand with:
+bandit, pip-audit, zizmor, the mypy ratchet, actionlint, CI lock freshness). Run it by hand with:
 
 ```bash
 bash scripts/pre-push-gate.sh
 ```
 
-With [uv](https://docs.astral.sh/uv/) installed it needs nothing else; tool
-versions are read from `ci.yml`. Without uv, tools found on `PATH` are used and a
+With [uv](https://docs.astral.sh/uv/) installed it needs nothing else; tools
+run from the same hash locks CI installs (`.github/ci-requirements/`). Without uv, tools found on `PATH` are used and a
 missing tool is skipped with a loud `WARN` line. Change the gate and `ci.yml`
 together. `bash scripts/check-hooks.sh` verifies the wiring.
+
+### Updating CI tool pins
+
+Every `pip install` in `.github/workflows/` installs a hash lock with
+`--require-hashes`. Each install surface has an input
+`.github/ci-requirements/<name>.in` (exact tool pins, plus `-r` includes of the
+project requirements files) and a generated lock `<name>.lock`. Every lock is
+resolved from scratch (no preferences from the old lock) with
+`--exclude-newer <EXCLUDE_NEWER>`, a fixed RFC 3339 timestamp set at the top of
+`scripts/check-ci-locks-fresh.sh` (the only place it lives). uv ignores every
+file uploaded after it, so the resolution is reproducible. To change a pin:
+
+1. Edit the `.in` (or the included project `requirements.txt`), and/or advance
+   `EXCLUDE_NEWER` (to a moment in the past) to pick up newer releases, which
+   is also how transitive dependencies move.
+2. Re-compile every lock with the recipe CI checks:
+
+   ```bash
+   bash scripts/check-ci-locks-fresh.sh --write
+   ```
+
+3. Commit the `.in`, the script (if the timestamp moved) and the `.lock` files
+   together. Never edit a `.lock` by hand.
+
+`bash scripts/check-ci-locks-fresh.sh` (run in the Lint job and by the local
+gate) fails when a lock no longer matches a fresh resolution of its `.in`, and
+refuses to run with a uv other than the pinned one.
+Dependabot does not update these locks (see the comment in
+`.github/dependabot.yml`). The uv that runs the check is itself hash-pinned in
+`.github/ci-tools/lock-tools.lock`; regenerate it with the command in its header.
 
 ## Running the Package Manager TUI
 

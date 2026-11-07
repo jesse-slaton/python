@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Repo-level CodeRabbit config: ONLY skips the generated CI hash locks.
+# inheritance: true keeps the organization settings applying to every key not
+# set here (without it this file would replace them, not merge with them).
+inheritance: true
+reviews:
+  path_filters:
+    - "!.github/ci-requirements/*.lock"
+    - "!.github/ci-tools/*.lock"

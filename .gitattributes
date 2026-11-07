@@ -1,0 +1,3 @@
+# Generated hash locks (scripts/check-ci-locks-fresh.sh --write); collapsed in diffs.
+.github/ci-requirements/*.lock linguist-generated=true
+.github/ci-tools/*.lock linguist-generated=true

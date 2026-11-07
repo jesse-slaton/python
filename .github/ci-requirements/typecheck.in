@@ -1,0 +1,9 @@
+# Input for the hash-locked CI install surface; compiles to the matching .lock.
+# Regenerate with `bash scripts/check-ci-locks-fresh.sh --write` (the one
+# recipe, incl. its --exclude-newer timestamp); never compile by hand.
+# Keep both files in one commit; never edit the .lock by hand.
+# Typecheck job: mypy, stubs, and both projects' runtime requirements.
+mypy==2.4.1
+types-requests==2.33.0.20261030
+-r ../../update-catalog-fetcher/requirements.txt
+-r ../../packagemanager-tui/requirements.txt

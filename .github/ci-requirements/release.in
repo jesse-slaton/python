@@ -1,0 +1,7 @@
+# Input for the hash-locked CI install surface; compiles to the matching .lock.
+# Regenerate with `bash scripts/check-ci-locks-fresh.sh --write` (the one
+# recipe, incl. its --exclude-newer timestamp); never compile by hand.
+# Keep both files in one commit; never edit the .lock by hand.
+# release.yml (windows-latest, py3.12): TUI runtime requirements + pyinstaller.
+-r ../../packagemanager-tui/requirements.txt
+pyinstaller==6.22.3
