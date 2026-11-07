@@ -218,16 +218,35 @@ pytest --cov=. --cov-report=term-missing
 bandit -r .
 ```
 
-### Optional: Pre-commit Hooks
+### Git hooks and the local gate
 
-You can automate these checks using pre-commit:
+Install the hooks once per clone (worktrees inherit them):
 
 ```bash
-pip install pre-commit
-pre-commit install
+bash scripts/install-hooks.sh
 ```
 
-Create `.pre-commit-config.yaml` if needed.
+This sets `core.hooksPath` to `.githooks`, so do not run `pre-commit install`
+(it refuses when `core.hooksPath` is set). The hooks are:
+
+- `pre-commit`: runs the pre-commit framework's pre-commit hooks (gitleaks,
+  typos, actionlint, whitespace). Warns and skips when `pre-commit` is not installed.
+- `commit-msg`: runs the conventional-commit check. Same warn-and-skip fallback.
+- `pre-push`: requires every commit being pushed to be signed (only commits not
+  already on the remote are checked), then runs the full local gate. There is no
+  skip switch; `PUSH_GATE` accepts only empty or `full`.
+
+The gate mirrors `.github/workflows/ci.yml` (ruff, pre-commit, fetcher pytest,
+bandit, pip-audit, zizmor, the mypy ratchet, actionlint). Run it by hand with:
+
+```bash
+bash scripts/pre-push-gate.sh
+```
+
+With [uv](https://docs.astral.sh/uv/) installed it needs nothing else; tool
+versions are read from `ci.yml`. Without uv, tools found on `PATH` are used and a
+missing tool is skipped with a loud `WARN` line. Change the gate and `ci.yml`
+together. `bash scripts/check-hooks.sh` verifies the wiring.
 
 ## Running the Package Manager TUI
 
