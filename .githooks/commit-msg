@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# commit-msg hook: run the pre-commit framework's commit-msg stage
+# (conventional-pre-commit). WARNS and exits 0 when pre-commit is missing.
+
+set -euo pipefail
+
+if ! command -v pre-commit >/dev/null 2>&1; then
+    echo "WARN: pre-commit is not installed; skipping the conventional-commit check" >&2
+    exit 0
+fi
+
+exec pre-commit run --hook-stage commit-msg --commit-msg-filename "$1"

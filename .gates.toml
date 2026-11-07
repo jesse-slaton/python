@@ -1,0 +1,14 @@
+# Gate definition for gate-runner.py (cc-orchestrator /prep-pr). One command that
+# mirrors .github/workflows/ci.yml; made explicit so the pool weight has a home.
+[prep_pr]
+gate = "bash scripts/pre-push-gate.sh"
+# Cost in the machine-wide gate pool (cc-orchestrator 0.107.0; inert until a
+# [pool] budget exists in ~/.claude/gate-queue/config.toml). Measured 2026-11-06
+# against budget 10 on a 10-core Mac: gate ~1.0 cores avg (user+sys over real,
+# 3 warm runs of ~18.6s: (14.9+4.5)/18.6; ruff, pytest, mypy, bandit run serially).
+weight = 1
+
+[merge_pr]
+# No coverage service on this repo (no codecov.yml): patch coverage is N/A, not a
+# failure. Stated explicitly so the consuming command self-skips.
+coverage_advisory = false

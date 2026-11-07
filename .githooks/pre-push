@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+#
+# pre-push hook: verify commit signatures, then run scripts/pre-push-gate.sh.
+#
+# Order:
+#   1. Signatures. For every pushed non-delete ref, each commit that is being
+#      pushed must show %G? == G. "Being pushed" means reachable from the local
+#      sha and from NO ref the destination remote holds right now: the tips come
+#      from `git ls-remote` on the push URL (live state, not possibly-stale
+#      remote-tracking refs, and only the destination, not every remote);
+#      destination tips missing locally are fetched first. So GitHub's
+#      own squash-merge commits on main, which are GPG-signed and read `N`
+#      locally (no gpg installed), are never scanned, even after a merge or
+#      rebase onto main. Offending SHAs are printed on failure. main requires
+#      signed commits.
+#   2. The gate: exec scripts/pre-push-gate.sh.
+#
+# PUSH_GATE: empty or `full` both run the gate; any other value exits 2.
+# There is deliberately NO skip value: a skip would be an un-floored twin of
+# `--no-verify`. (Do not use `git push --no-verify` either.)
+#
+# Installed by scripts/install-hooks.sh as a shim in the shared hooks
+# directory, so every worktree runs it (and fails closed on branches without it).
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+GATE="$REPO_ROOT/scripts/pre-push-gate.sh"
+
+case "${PUSH_GATE:-}" in
+    "" | full) ;;
+    *)
+        echo "pre-push: unknown PUSH_GATE='${PUSH_GATE}' (expected empty or full)" >&2
+        exit 2
+        ;;
+esac
+
+if [ ! -x "$GATE" ]; then
+    echo "pre-push: $GATE not found or not executable" >&2
+    exit 1
+fi
+
+zero_re='^(0{40}|0{64})$'
+remote="${1:?pre-push: git did not pass the remote name}"
+# $2 is the URL being pushed TO. A named remote can fetch from one URL and push
+# to another, so read the push destination, never the remote's fetch URL.
+dest="${2:-$remote}"
+
+# Live tips of the destination's branches and tags. A failed read fails the
+# push closed: without it the "already on the remote" exclusion is unknown.
+if ! remote_refs="$(git ls-remote --heads --tags "$dest")"; then
+    echo "pre-push: cannot read refs from '$dest'; refusing to guess which commits are new" >&2
+    exit 1
+fi
+tips=()
+missing=()
+while read -r tip _; do
+    [ -n "${tip:-}" ] || continue
+    if git cat-file -e "${tip}^{commit}" 2>/dev/null; then tips+=("$tip"); else missing+=("$tip"); fi
+done <<<"$remote_refs"
+# A destination tip we lack locally can still share ancestors with what we
+# push; without its objects those ancestors would be checked and could reject
+# a valid push. Fetch the missing tips' objects (no refs written), or fail.
+if [ "${#missing[@]}" -gt 0 ]; then
+    if ! git fetch --quiet --no-tags --no-write-fetch-head "$dest" "${missing[@]}"; then
+        echo "pre-push: cannot fetch ${#missing[@]} destination tip(s) from '$dest'; run 'git fetch $remote' and retry" >&2
+        exit 1
+    fi
+    # Keep only tips that resolve to a commit: a tag may point at a tree or a
+    # blob, which can never be an ancestor of a pushed commit and would make
+    # rev-list reject the exclusion as a bad revision.
+    for tip in "${missing[@]}"; do
+        git cat-file -e "${tip}^{commit}" 2>/dev/null && tips+=("$tip")
+    done
+fi
+exclude=()
+for tip in ${tips[@]+"${tips[@]}"}; do exclude+=("^$tip"); done
+
+bad=0
+while read -r _ lsha _ _; do
+    [ -n "${lsha:-}" ] || continue
+    [[ "$lsha" =~ $zero_re ]] && continue # delete: sends nothing
+    shas="$(git rev-list "$lsha" ${exclude[@]+"${exclude[@]}"})" || {
+        echo "pre-push: cannot list commits for $lsha" >&2
+        exit 1
+    }
+    for sha in $shas; do
+        # stderr discarded: git prints "cannot run gpg" for GitHub's GPG-signed
+        # commits on machines without gpg; only the status letter matters.
+        status="$(git log -1 --format='%G?' "$sha" 2>/dev/null)"
+        if [ "$status" != "G" ]; then
+            echo "pre-push: commit not verified as signed (%G?=${status:-?}): $(git log -1 --format='%h %s' "$sha")" >&2
+            bad=1
+        fi
+    done
+done
+
+if [ "$bad" -ne 0 ]; then
+    echo "pre-push: every pushed commit must be signed (main requires it); re-sign with git commit --amend -S --no-edit or rebase --exec" >&2
+    exit 1
+fi
+echo "pre-push: commit signatures OK"
+
+echo "pre-push: running scripts/pre-push-gate.sh ..."
+exec bash "$GATE" </dev/null

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# pre-commit hook: run the pre-commit framework's pre-commit stage.
+# When pre-commit is not installed this WARNS and exits 0 (CI's Lint job runs
+# pre-commit --all-files anyway). Do not run `pre-commit install`: it would
+# replace the shim scripts/install-hooks.sh writes; this wrapper is the wiring.
+
+set -euo pipefail
+
+if ! command -v pre-commit >/dev/null 2>&1; then
+    echo "WARN: pre-commit is not installed; skipping local pre-commit hooks (CI Lint still runs them)" >&2
+    exit 0
+fi
+
+exec pre-commit run --hook-stage pre-commit
