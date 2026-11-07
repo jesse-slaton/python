@@ -220,14 +220,18 @@ bandit -r .
 
 ### Git hooks and the local gate
 
-Install the hooks once per clone (worktrees inherit them):
+Install the hooks once per clone (every worktree uses them):
 
 ```bash
 bash scripts/install-hooks.sh
 ```
 
-This sets `core.hooksPath` to `.githooks`, so do not run `pre-commit install`
-(it refuses when `core.hooksPath` is set). The hooks are:
+This writes small shims into the clone's shared hooks directory
+(`git rev-parse --git-common-dir`/hooks). Each shim runs the checked-out
+worktree's `.githooks/<hook>` and refuses the commit or push when that branch has
+no such hook (a branch cut before the hooks existed: merge main into it).
+`core.hooksPath` must stay unset, and do not run `pre-commit install` (it would
+replace the shim). `bash scripts/check-hooks.sh` verifies the wiring. The hooks are:
 
 - `pre-commit`: runs the pre-commit framework's pre-commit hooks (gitleaks,
   typos, actionlint, whitespace). Warns and skips when `pre-commit` is not installed.

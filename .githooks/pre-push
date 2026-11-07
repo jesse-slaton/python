@@ -19,8 +19,8 @@
 # There is deliberately NO skip value: a skip would be an un-floored twin of
 # `--no-verify`. (Do not use `git push --no-verify` either.)
 #
-# Installed by scripts/install-hooks.sh, which sets core.hooksPath to this
-# directory so worktrees inherit it without per-worktree setup.
+# Installed by scripts/install-hooks.sh as a shim in the shared hooks
+# directory, so every worktree runs it (and fails closed on branches without it).
 
 set -euo pipefail
 
