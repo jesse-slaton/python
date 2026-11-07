@@ -31,14 +31,23 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Every CI install is hash-locked (Scorecard Pinned-Dependencies): the
+      # locks live in .github/ci-requirements/ (see DEVELOPMENT.md, "Updating
+      # CI tool pins").
       - name: Install ruff
-        run: python -m pip install --disable-pip-version-check ruff==0.17.4
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/lint.txt
 
       - name: Ruff check
         run: ruff check .
 
       - name: Ruff format check
         run: ruff format --check .
+
+      - name: Install uv (hash-pinned, the lock-freshness resolver)
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-tools/lock-tools.txt
+
+      - name: Verify CI locks are fresh (re-compile and compare)
+        run: bash scripts/check-ci-locks-fresh.sh
 
       - name: Pre-commit hooks
         uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
@@ -63,11 +72,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --disable-pip-version-check mypy==2.4.1 \
-            types-requests==2.33.0.20261030 \
-            -r update-catalog-fetcher/requirements.txt \
-            -r packagemanager-tui/requirements.txt
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/typecheck.txt
 
       # Ratchet: the repo carries a known mypy backlog (#19). Fail only when
       # the error count rises above the baseline; lower MYPY_BASELINE as #19
@@ -112,9 +117,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # One universal lock serves both matrix Pythons (environment markers).
       - name: Install dependencies
-        working-directory: update-catalog-fetcher
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/test.txt
 
       # pytest exits 5 when it collects no tests, which fails the step on purpose.
       - name: Pytest
@@ -154,7 +159,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install security tooling
-        run: python -m pip install --disable-pip-version-check "bandit[toml]==1.9.4" pip-audit==2.10.1
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/ci-requirements/security.txt
 
       # -c pyproject.toml reads [tool.bandit]; -ll reports medium severity and up.
       - name: Bandit

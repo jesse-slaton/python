@@ -241,16 +241,42 @@ replace the shim). `bash scripts/check-hooks.sh` verifies the wiring. The hooks 
   skip switch; `PUSH_GATE` accepts only empty or `full`.
 
 The gate mirrors `.github/workflows/ci.yml` (ruff, pre-commit, fetcher pytest,
-bandit, pip-audit, zizmor, the mypy ratchet, actionlint). Run it by hand with:
+bandit, pip-audit, zizmor, the mypy ratchet, actionlint, CI lock freshness). Run it by hand with:
 
 ```bash
 bash scripts/pre-push-gate.sh
 ```
 
-With [uv](https://docs.astral.sh/uv/) installed it needs nothing else; tool
-versions are read from `ci.yml`. Without uv, tools found on `PATH` are used and a
+With [uv](https://docs.astral.sh/uv/) installed it needs nothing else; tools
+run from the same hash locks CI installs (`.github/ci-requirements/`). Without uv, tools found on `PATH` are used and a
 missing tool is skipped with a loud `WARN` line. Change the gate and `ci.yml`
 together. `bash scripts/check-hooks.sh` verifies the wiring.
+
+### Updating CI tool pins
+
+Every `pip install` in `.github/workflows/` installs a hash lock with
+`--require-hashes`. Each install surface has an input
+`.github/ci-requirements/<name>.in` (exact tool pins, plus `-r` includes of the
+project requirements files) and a generated lock `<name>.txt`. To change a pin:
+
+1. Edit the `.in` (or the included project `requirements.txt`).
+2. Re-compile every lock with the same flags CI checks
+   (`uv pip compile --generate-hashes --universal --python-version 3.12`):
+
+   ```bash
+   bash scripts/check-ci-locks-fresh.sh --write
+   ```
+
+   To move a transitive dependency without touching the `.in`, run
+   `uv pip compile --generate-hashes --universal --python-version 3.12 --upgrade-package <pkg> <name>.in -o <name>.txt`
+   from `.github/ci-requirements/`.
+3. Commit the `.in` and `.txt` together.
+
+`bash scripts/check-ci-locks-fresh.sh` (run in the Lint job and by the local
+gate) fails when a lock no longer matches a fresh compile of its `.in`.
+Dependabot does not update these locks (see the comment in
+`.github/dependabot.yml`). The uv that runs the check is itself hash-pinned in
+`.github/ci-tools/lock-tools.txt`; regenerate it with the command in its header.
 
 ## Running the Package Manager TUI
 

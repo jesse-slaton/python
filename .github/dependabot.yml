@@ -3,6 +3,16 @@ updates:
   - package-ecosystem: pip
     # One entry at the repo root: Dependabot scans every requirements*.txt
     # below it, so per-subdirectory entries opened duplicate PRs.
+    #
+    # NOT covered, on purpose: the uv-compiled CI hash locks under
+    # .github/ci-requirements/ (and the uv pin in .github/ci-tools/). This
+    # entry fetches only the root plus one level of subdirectories, and a
+    # directory entry for the locks would regenerate them with pip-tools'
+    # pip-compile (no --universal), breaking the markers and failing the
+    # freshness check. Bumps are manual: DEVELOPMENT.md, "Updating CI tool
+    # pins". A bump here to a file a lock includes via -r (the two project
+    # requirements.txt files) fails the Lint job's lock-freshness step until
+    # the PR also carries `bash scripts/check-ci-locks-fresh.sh --write`.
     directory: /
     schedule:
       interval: weekly

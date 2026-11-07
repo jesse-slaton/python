@@ -19,9 +19,5 @@ vulture>=2.16  # Dead code detection
 # Type checking
 types-setuptools
 
-# Documentation
-sphinx>=9.1.1
-sphinx-rtd-theme>=3.1.0
-
 # Pre-commit hooks (optional)
 pre-commit>=4.7.0
