@@ -16,42 +16,65 @@ cd "$(git rev-parse --show-toplevel)"
 HOOKS="pre-commit commit-msg pre-push"
 MARKER="# installed by scripts/install-hooks.sh"
 
-current=$(git config --get core.hooksPath 2>/dev/null || true)
-if [ "$current" = ".githooks" ] &&
-    [ "$(git config --show-scope --get core.hooksPath | cut -f1)" = "local" ]; then
-    # The previous version of this installer set it; the shims replace it.
-    git config --local --unset core.hooksPath
-    echo "Removed the old core.hooksPath=.githooks setting (replaced by shims)."
-elif [ -n "$current" ]; then
-    # Name the config scope that sets it: the unset command differs per scope.
-    scope=$(git config --show-scope --get core.hooksPath 2>/dev/null | cut -f1)
-    echo "FAIL: core.hooksPath is set to '$current' (scope: ${scope:-unknown}); refusing to replace it." >&2
-    echo "Move any hooks you still need from '$current' into .githooks/, then:" >&2
-    case "$scope" in
-        local | global | system | worktree)
-            echo "  git config --$scope --unset core.hooksPath && bash scripts/install-hooks.sh" >&2
-            ;;
-        *)
-            echo "  remove it where it is set (it comes from the '${scope:-unknown}' scope, e.g. GIT_CONFIG_* or -c);" >&2
-            echo "  locate it with: git config --show-origin --show-scope --get-all core.hooksPath" >&2
-            ;;
-    esac
+# Every check runs BEFORE anything changes, so a refusal leaves the old setup
+# exactly as it was.
+#
+# core.hooksPath must be unset in every scope that applies to any worktree
+# (system, global, local, and each linked worktree's own config). The one
+# value tolerated is the earlier installer's local `.githooks`, which this run
+# migrates away. Anything else would bypass the shared shims.
+legacy=0
+conflicts=""
+while IFS= read -r wt; do
+    while IFS=$'\t' read -r scope value; do
+        [ -n "${scope:-}" ] || continue
+        if [ "$scope" = "local" ] && [ "$value" = ".githooks" ]; then
+            legacy=1
+            continue
+        fi
+        # Only worktree-scoped values differ per worktree; report shared
+        # scopes once, against this checkout.
+        where="$wt"
+        [ "$scope" = "worktree" ] || where="$PWD"
+        conflicts="$conflicts$where\t$scope\t$value\n"
+    done < <(git -C "$wt" config --show-scope --get-all core.hooksPath 2>/dev/null || true)
+done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
+
+if [ -n "$conflicts" ]; then
+    echo "FAIL: core.hooksPath is set where it would bypass the shared hook shims; nothing was changed." >&2
+    printf '%b' "$conflicts" | sort -u | while IFS=$'\t' read -r wt scope value; do
+        echo "  worktree $wt: '$value' (scope: $scope)" >&2
+        case "$scope" in
+            local | global | system | worktree)
+                echo "    move any hooks you need from '$value' into .githooks/, then: git -C '$wt' config --$scope --unset core.hooksPath" >&2
+                ;;
+            *)
+                echo "    it comes from the '$scope' scope (GIT_CONFIG_* or -c); remove it there" >&2
+                ;;
+        esac
+    done
+    echo "Then re-run: bash scripts/install-hooks.sh" >&2
     exit 1
 fi
 
 hooks_dir="$(git rev-parse --path-format=absolute --git-common-dir)/hooks"
-mkdir -p "$hooks_dir"
 
 # Refuse to overwrite a hook this installer did not write.
 for h in $HOOKS; do
     f="$hooks_dir/$h"
     if [ -e "$f" ] && ! grep -qF "$MARKER" "$f"; then
-        echo "FAIL: $f already exists and was not written by this installer; refusing to replace it." >&2
+        echo "FAIL: $f already exists and was not written by this installer; nothing was changed." >&2
         echo "Move anything you still need from it into .githooks/$h, delete it, then re-run this script." >&2
         exit 1
     fi
 done
 
+# All checks passed. If anything below fails, put the legacy setting back so
+# the clone is never left with no active hooks.
+if [ "$legacy" -eq 1 ]; then
+    trap 'git config --local core.hooksPath .githooks; echo "install-hooks: failed; restored core.hooksPath=.githooks" >&2' ERR
+fi
+mkdir -p "$hooks_dir"
 chmod +x .githooks/* scripts/*.sh
 for h in $HOOKS; do
     cat >"$hooks_dir/$h" <<EOF
@@ -71,4 +94,9 @@ EOF
     chmod +x "$hooks_dir/$h"
 done
 
+if [ "$legacy" -eq 1 ]; then
+    git config --local --unset core.hooksPath
+    echo "Removed the old core.hooksPath=.githooks setting (replaced by the shims)."
+fi
 bash scripts/check-hooks.sh
+trap - ERR

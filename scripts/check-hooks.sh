@@ -10,9 +10,16 @@ cd "$(git rev-parse --show-toplevel)"
 MARKER="# installed by scripts/install-hooks.sh"
 FIX="Fix: run 'bash scripts/install-hooks.sh' from this repo"
 
-hooks_path=$(git config --get core.hooksPath 2>/dev/null || true)
-if [ -n "$hooks_path" ]; then
-    echo "FAIL: core.hooksPath is '$hooks_path'; it must be unset so the shared hook shims run" >&2
+# core.hooksPath set anywhere that applies to any worktree bypasses the shims.
+bad=0
+while IFS= read -r wt; do
+    while IFS=$'\t' read -r scope value; do
+        [ -n "${scope:-}" ] || continue
+        echo "FAIL: worktree $wt has core.hooksPath='$value' (scope: $scope); it must be unset so the shared hook shims run" >&2
+        bad=1
+    done < <(git -C "$wt" config --show-scope --get-all core.hooksPath 2>/dev/null || true)
+done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
+if [ "$bad" -ne 0 ]; then
     echo "$FIX" >&2
     exit 1
 fi
