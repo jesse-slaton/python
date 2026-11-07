@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Verify every hash lock under .github/ci-requirements/ is exactly what its
-# .in source resolves to: re-compile each <name>.in into a temp file with the
-# same uv flags and compare against the committed <name>.txt.
+# .in source resolves to: compile each <name>.in from scratch into an EMPTY
+# temp output with the one recipe below and compare against the committed
+# <name>.lock.
 #
 # Why this exists: CI installs these locks with `pip install --require-hashes`
 # (Scorecard Pinned-Dependencies), so an .in edit without a re-compile, a
@@ -9,33 +10,48 @@
 # that the lock no longer satisfies would otherwise go unnoticed until an
 # install breaks (or never, if the lock just silently keeps the old pin).
 #
-# Determinism: the committed lock is copied to the temp output first, so uv
-# uses its pins as preferences (as `uv pip compile -o` always does) and only
-# re-resolves what the sources force to move. A fresh lock therefore
-# reproduces byte-for-byte. One known non-staleness cause of a diff: a package
-# uploading a new wheel for an already-pinned version adds a hash; the fix is
-# the same as for a stale lock (re-run with --write and commit).
+# Determinism: the temp output starts empty, so uv has NO preferences from the
+# committed lock (seeding it would let a hand-edited transitive pin that the
+# .in still allows reproduce itself and pass). The fresh resolution is pinned
+# in time instead by --exclude-newer EXCLUDE_NEWER: uv ignores every file
+# uploaded after that instant, so neither a new release nor a wheel uploaded
+# later for an already-pinned version changes the output.
 #
-# Header rule: uv's own header (two comment lines naming the compile command)
-# names the output path, which differs for the temp file, so both sides are
-# compared from their first line that is neither empty nor a comment through
-# EOF. uv's `# via` annotations come after the first requirement and are
-# still compared.
+# EXCLUDE_NEWER below is the ONE place the timestamp lives; check and --write
+# both read it. A tool bump = edit the .in (and/or advance EXCLUDE_NEWER, which
+# moves every transitive pin to the newest release before it), then --write.
+#
+# Resolver: CI installs uv from .github/ci-tools/lock-tools.lock; another uv
+# version may resolve or format differently, so the script refuses to run with
+# any uv whose version differs from that pin. It deliberately ignores $UV:
+# `uv run` exports UV pointing at the OUTER uv, which would silently swap the
+# resolver when this runs inside `uv run --with-requirements lock-tools.lock`.
+#
+# Header rule: --custom-compile-command makes uv's header name this script
+# rather than the output path, so it is identical for the temp file; both
+# sides are still compared from their first line that is neither empty nor a
+# comment through EOF. uv's `# via` annotations come after the first
+# requirement and are still compared.
 #
 # Usage: scripts/check-ci-locks-fresh.sh [--write]
-#   --write   regenerate every lock in place instead of checking.
-#   UV=/path/to/uv overrides the uv binary (default: uv on PATH). CI pins uv
-#   via .github/ci-tools/lock-tools.txt; another uv version may format output
-#   differently and fail the comparison.
+#   --write   regenerate every lock in place (same recipe) instead of checking.
+#   CI_LOCKS_UV=/path/to/uv overrides the uv binary (default: uv on PATH); its
+#   version must still equal the lock-tools.lock pin.
 set -euo pipefail
+
+# RFC 3339, UTC. Must be in the past when committed.
+EXCLUDE_NEWER="2026-11-07T00:00:00Z"
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 LOCK_DIR="$REPO_ROOT/.github/ci-requirements"
-UV="${UV:-uv}"
+TOOLS_LOCK="$REPO_ROOT/.github/ci-tools/lock-tools.lock"
+UV_BIN="${CI_LOCKS_UV:-uv}"
 # The one compile recipe. --universal emits environment markers so a single
 # lock serves every interpreter/OS CI uses (Linux 3.12 + 3.14, Windows 3.12);
 # --python-version 3.12 is the floor (root requires-python).
-UV_FLAGS=(pip compile --quiet --generate-hashes --universal --python-version 3.12)
+UV_FLAGS=(pip compile --quiet --generate-hashes --universal --python-version 3.12
+  --exclude-newer "$EXCLUDE_NEWER"
+  --custom-compile-command "bash scripts/check-ci-locks-fresh.sh --write")
 
 mode="check"
 case "${1:-}" in
@@ -47,8 +63,19 @@ case "${1:-}" in
   ;;
 esac
 
-if ! command -v "$UV" >/dev/null 2>&1; then
-  echo "::error::uv not found (UV=$UV); install it (CI: pip install --require-hashes -r .github/ci-tools/lock-tools.txt)" >&2
+if ! command -v "$UV_BIN" >/dev/null 2>&1; then
+  echo "::error::uv not found ($UV_BIN); install the pinned copy: python -m pip install --require-hashes -r .github/ci-tools/lock-tools.lock" >&2
+  exit 1
+fi
+
+pinned_uv="$(sed -n -E 's/^uv==([^ ;\\]+).*/\1/p' "$TOOLS_LOCK")"
+if [ "$(printf '%s\n' "$pinned_uv" | grep -c .)" -ne 1 ]; then
+  echo "::error file=.github/ci-tools/lock-tools.lock::expected exactly one uv==<version> pin in lock-tools.lock" >&2
+  exit 1
+fi
+actual_uv="$("$UV_BIN" --version | awk '{print $2}')"
+if [ "$actual_uv" != "$pinned_uv" ]; then
+  echo "::error::$UV_BIN is uv $actual_uv but the locks are resolved with uv $pinned_uv (.github/ci-tools/lock-tools.lock). Run via the pinned copy, e.g. uv run --no-project --with-requirements .github/ci-tools/lock-tools.lock -- env -u UV bash scripts/check-ci-locks-fresh.sh" >&2
   exit 1
 fi
 
@@ -72,33 +99,33 @@ if [ "${#sources[@]}" -eq 0 ]; then
 fi
 
 failed=0
-for lock in *.txt; do
-  if [ ! -f "${lock%.txt}.in" ]; then
-    echo "::error file=.github/ci-requirements/$lock::$lock has no ${lock%.txt}.in source"
+for lock in *.lock; do
+  if [ ! -f "${lock%.lock}.in" ]; then
+    echo "::error file=.github/ci-requirements/$lock::$lock has no ${lock%.lock}.in source"
     failed=1
   fi
 done
 
 for src in "${sources[@]}"; do
   name="${src%.in}"
-  lock="$name.txt"
+  lock="$name.lock"
   rel=".github/ci-requirements/$lock"
 
+  # Always compile into a path that does not exist yet: no preference seeding.
+  if ! "$UV_BIN" "${UV_FLAGS[@]}" "$src" -o "$tmp/$lock"; then
+    echo "::error file=$rel::uv could not resolve $src (exclude-newer $EXCLUDE_NEWER) -- see output above"
+    failed=1
+    continue
+  fi
+
   if [ "$mode" = write ]; then
-    "$UV" "${UV_FLAGS[@]}" "$src" -o "$lock"
-    echo "$lock: regenerated from $src"
+    mv "$tmp/$lock" "$lock"
+    echo "$lock: regenerated from $src (exclude-newer $EXCLUDE_NEWER)"
     continue
   fi
 
   if [ ! -f "$lock" ]; then
     echo "::error file=.github/ci-requirements/$src::$src has no compiled $lock; run scripts/check-ci-locks-fresh.sh --write"
-    failed=1
-    continue
-  fi
-
-  cp "$lock" "$tmp/$lock"
-  if ! "$UV" "${UV_FLAGS[@]}" "$src" -o "$tmp/$lock"; then
-    echo "::error file=$rel::uv could not resolve $src -- see output above"
     failed=1
     continue
   fi
@@ -112,7 +139,7 @@ for src in "${sources[@]}"; do
   fi
 
   if cmp -s "$tmp/$name.committed" "$tmp/$name.fresh"; then
-    echo "$lock: fresh (matches $src)"
+    echo "$lock: fresh (matches $src resolved at $EXCLUDE_NEWER)"
     continue
   fi
 
@@ -122,7 +149,7 @@ for src in "${sources[@]}"; do
   only_fresh="$(comm -13 "$tmp/$name.cpins" "$tmp/$name.fpins" | paste -sd' ' -)"
   diff -u --label "$lock (committed)" --label "$lock (regenerated)" \
     "$tmp/$name.committed" "$tmp/$name.fresh" | head -n 200 || true
-  echo "::error file=$rel::$lock does not match a fresh compile of $src. Committed-only pins: ${only_committed:-none}. Resolver's pins: ${only_fresh:-none} (if both are none, only hashes/annotations differ). Never edit a lock by hand: run scripts/check-ci-locks-fresh.sh --write and commit the .in and .txt together."
+  echo "::error file=$rel::$lock does not match a fresh resolution of $src at exclude-newer $EXCLUDE_NEWER. Committed-only pins: ${only_committed:-none}. Resolver's pins: ${only_fresh:-none} (if both are none, only hashes/annotations differ). Never edit a lock by hand: run scripts/check-ci-locks-fresh.sh --write and commit the .in and .lock together."
   failed=1
 done
 

@@ -1,7 +1,6 @@
-# Input for the hash-locked CI install surface; compile to the matching .txt.
-# Regenerate (from this directory) with scripts/check-ci-locks-fresh.sh --write,
-# or by hand:
-#   uv pip compile --generate-hashes --universal --python-version 3.12 lint.in -o lint.txt
-# Keep both files in one commit; never edit the .txt by hand.
+# Input for the hash-locked CI install surface; compiles to the matching .lock.
+# Regenerate with `bash scripts/check-ci-locks-fresh.sh --write` (the one
+# recipe, incl. its --exclude-newer timestamp); never compile by hand.
+# Keep both files in one commit; never edit the .lock by hand.
 # Lint job: ruff.
 ruff==0.17.4

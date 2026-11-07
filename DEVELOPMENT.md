@@ -257,26 +257,30 @@ together. `bash scripts/check-hooks.sh` verifies the wiring.
 Every `pip install` in `.github/workflows/` installs a hash lock with
 `--require-hashes`. Each install surface has an input
 `.github/ci-requirements/<name>.in` (exact tool pins, plus `-r` includes of the
-project requirements files) and a generated lock `<name>.txt`. To change a pin:
+project requirements files) and a generated lock `<name>.lock`. Every lock is
+resolved from scratch (no preferences from the old lock) with
+`--exclude-newer <EXCLUDE_NEWER>`, a fixed RFC 3339 timestamp set at the top of
+`scripts/check-ci-locks-fresh.sh` (the only place it lives). uv ignores every
+file uploaded after it, so the resolution is reproducible. To change a pin:
 
-1. Edit the `.in` (or the included project `requirements.txt`).
-2. Re-compile every lock with the same flags CI checks
-   (`uv pip compile --generate-hashes --universal --python-version 3.12`):
+1. Edit the `.in` (or the included project `requirements.txt`), and/or advance
+   `EXCLUDE_NEWER` (to a moment in the past) to pick up newer releases, which
+   is also how transitive dependencies move.
+2. Re-compile every lock with the recipe CI checks:
 
    ```bash
    bash scripts/check-ci-locks-fresh.sh --write
    ```
 
-   To move a transitive dependency without touching the `.in`, run
-   `uv pip compile --generate-hashes --universal --python-version 3.12 --upgrade-package <pkg> <name>.in -o <name>.txt`
-   from `.github/ci-requirements/`.
-3. Commit the `.in` and `.txt` together.
+3. Commit the `.in`, the script (if the timestamp moved) and the `.lock` files
+   together. Never edit a `.lock` by hand.
 
 `bash scripts/check-ci-locks-fresh.sh` (run in the Lint job and by the local
-gate) fails when a lock no longer matches a fresh compile of its `.in`.
+gate) fails when a lock no longer matches a fresh resolution of its `.in`, and
+refuses to run with a uv other than the pinned one.
 Dependabot does not update these locks (see the comment in
 `.github/dependabot.yml`). The uv that runs the check is itself hash-pinned in
-`.github/ci-tools/lock-tools.txt`; regenerate it with the command in its header.
+`.github/ci-tools/lock-tools.lock`; regenerate it with the command in its header.
 
 ## Running the Package Manager TUI
 

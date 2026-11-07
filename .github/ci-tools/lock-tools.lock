@@ -6,8 +6,10 @@
 # version moves only together with the locks it checks
 # (another uv version may format lock output differently and fail the byte
 # comparison in scripts/check-ci-locks-fresh.sh). Regenerate with:
+# (from the repo root; the --exclude-newer timestamp is the one in that script):
 #   echo 'uv==0.13.7' | uv pip compile --generate-hashes --universal \
-#     --no-header --no-emit-index-url - -o .github/ci-tools/lock-tools.txt
+#     --exclude-newer "$(sed -n -E 's/^EXCLUDE_NEWER="(.*)"/\1/p' scripts/check-ci-locks-fresh.sh)" \
+#     --no-header --no-emit-index-url - -o .github/ci-tools/lock-tools.lock
 #   (then re-add this header block)
 uv==0.13.7 \
     --hash=sha256:08f16fd463926786b702b497473511deae4b3e17a2fa6d22180950d6059a120d \

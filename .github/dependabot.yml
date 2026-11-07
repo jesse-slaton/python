@@ -12,7 +12,9 @@ updates:
     # freshness check. Bumps are manual: DEVELOPMENT.md, "Updating CI tool
     # pins". A bump here to a file a lock includes via -r (the two project
     # requirements.txt files) fails the Lint job's lock-freshness step until
-    # the PR also carries `bash scripts/check-ci-locks-fresh.sh --write`.
+    # the PR also carries `bash scripts/check-ci-locks-fresh.sh --write` (and,
+    # if the new version was uploaded after the script's EXCLUDE_NEWER
+    # timestamp, a commit advancing that timestamp).
     directory: /
     schedule:
       interval: weekly

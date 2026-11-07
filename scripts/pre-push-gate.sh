@@ -3,20 +3,22 @@
 # pre-push-gate.sh -- full local gate before push.
 #
 # Steps (in order, every step runs; the gate exits non-zero if any failed):
-#   1. ruff check          -- lint (ruff version from .github/ci-requirements/lint.txt)
+#   1. ruff check          -- lint (ruff version from .github/ci-requirements/lint.lock)
 #   2. ruff format --check -- formatting
 #   3. pre-commit          -- pre-commit run --all-files (gitleaks, typos, ...)
 #   4. pytest              -- update-catalog-fetcher suite, as the Test legs run
 #                             it; FAILS when 0 tests are collected (pytest exit 5)
 #   5. bandit              -- same args as CI (-c pyproject.toml -r . -ll)
-#   6. pip-audit           -- all four requirements files, as CI does
+#   6. pip-audit           -- all four requirements files, then every CI hash
+#                             lock (--disable-pip: exactly the pinned versions),
+#                             as CI does
 #   7. zizmor              -- .github/workflows; any finding fails, as CI does
 #   8. mypy ratchet        -- error count must not exceed MYPY_BASELINE, which is
 #                             READ from ci.yml so there is ONE number; a missing
 #                             mypy summary line fails closed
 #   9. actionlint          -- .github/workflows (only when installed)
 #  10. CI lock freshness   -- scripts/check-ci-locks-fresh.sh, run with the
-#                             hash-pinned uv from .github/ci-tools/lock-tools.txt
+#                             hash-pinned uv from .github/ci-tools/lock-tools.lock
 #
 # This script mirrors .github/workflows/ci.yml; change both together.
 #
@@ -36,11 +38,11 @@ cd "$REPO_ROOT"
 
 CI_YML=".github/workflows/ci.yml"
 LOCKS=".github/ci-requirements"
-LINT_LOCK="$LOCKS/lint.txt"
-TYPECHECK_LOCK="$LOCKS/typecheck.txt"
-TEST_LOCK="$LOCKS/test.txt"
-SECURITY_LOCK="$LOCKS/security.txt"
-LOCK_TOOLS=".github/ci-tools/lock-tools.txt"
+LINT_LOCK="$LOCKS/lint.lock"
+TYPECHECK_LOCK="$LOCKS/typecheck.lock"
+TEST_LOCK="$LOCKS/test.lock"
+SECURITY_LOCK="$LOCKS/security.lock"
+LOCK_TOOLS=".github/ci-tools/lock-tools.lock"
 PY=3.12
 # zizmor is not pinned in ci.yml (the action picks its own); pinned here.
 ZIZMOR_VERSION="1.32.0"
@@ -192,6 +194,15 @@ audit_all() {
             pip-audit -r "$req" || rc=$?
         fi
     done
+    # The CI locks: audited as pinned (no resolution, no venv), as ci.yml does.
+    for req in "$LOCKS"/*.lock "$LOCK_TOOLS"; do
+        echo "--- pip-audit ${req} (locked versions)"
+        if have uv; then
+            uv run --no-project --python "$audit_py" --with-requirements "$SECURITY_LOCK" -- pip-audit --disable-pip --require-hashes -r "$req" || rc=$?
+        else
+            pip-audit --disable-pip --require-hashes -r "$req" || rc=$?
+        fi
+    done
     return "$rc"
 }
 if available pip-audit; then
@@ -251,10 +262,12 @@ else step_skip "actionlint" "actionlint not installed (pre-commit also runs it)"
 
 echo ""
 echo "=== CI lock freshness ==="
-# Runs with the hash-pinned uv CI uses (inside the uv run env, `uv` on PATH is
-# that pinned copy), so a different local uv cannot reformat the comparison.
+# Runs with the hash-pinned uv CI uses: inside the uv run env, `uv` on PATH is
+# that pinned copy. `uv run` also exports UV=<outer uv>; it is unset so nothing
+# downstream can pick the outer resolver, and the script itself refuses any uv
+# whose version differs from the lock-tools.lock pin.
 if have uv; then
-    run_step "CI lock freshness" uvlock "$LOCK_TOOLS" bash scripts/check-ci-locks-fresh.sh
+    run_step "CI lock freshness" uvlock "$LOCK_TOOLS" env -u UV bash scripts/check-ci-locks-fresh.sh
 else step_skip "CI lock freshness" "uv not installed"; fi
 
 echo ""
