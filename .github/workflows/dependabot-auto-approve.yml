@@ -1,15 +1,44 @@
-# Arm GitHub's native auto-merge for Dependabot patch and minor updates; leave
-# one comment on major updates asking for human review. There is no approve
-# step: the ruleset requires 0 approvals, so arming auto-merge is what matters,
-# and GitHub merges once the ruleset's required checks pass.
+# Approve Dependabot patch and minor updates and arm GitHub's native
+# auto-merge for them; leave one comment on major updates asking for human
+# review. The ruleset requires 1 approval, and Copilot's reviewer only ever
+# comments, so this workflow's approval is what lets these PRs merge. GitHub
+# merges once the ruleset's required checks pass.
 #
-# The arming condition is a positive allowlist of update types. An empty,
-# unknown or new update-type value arms nothing.
+# The approve and arming conditions are a positive allowlist of update types.
+# An empty, unknown or new update-type value approves and arms nothing.
 #
-# Prerequisite: Settings > General > "Allow auto-merge" enabled.
-# Do not add to repos without a ruleset (nothing would enforce CI before merge).
+# The verify step refuses to approve a PR carrying any commit Dependabot did
+# not make. The job gate checks only who opened the PR, and fetch-metadata
+# checks only the first commit, so neither catches a commit pushed on top.
+# Every commit must be authored by Dependabot AND committed and signed by
+# GitHub (web-flow), ending at the event's head SHA. The committer check
+# matters: the author is free text and a signature binds only the committer,
+# so a writer can sign a commit that merely claims a Dependabot author.
+# (github.actor is not used: zizmor flags it as spoofable.) The approval and
+# the auto-merge are both pinned to that verified SHA. A PR with a foreign
+# commit is skipped with a warning, not failed, so a maintainer's fixup
+# commit does not turn the run red; it just needs a human approval.
+#
+# Limit: this does not defend against someone with write access who edits
+# this workflow inside a PR. pull_request runs the PR's own copy of the file,
+# so with Actions allowed to approve PRs, write access is enough to
+# self-approve. Closing that needs code-owner review on .github/.
+#
+# The ruleset dismisses stale approvals on push. When Dependabot itself
+# rebases, the synchronize event re-runs this job and it re-approves the new
+# head. A push by anyone else is not auto-approved: the stale approval is
+# dismissed and a human must approve.
+#
+# Prerequisites:
+#   - Settings > General > "Allow auto-merge" enabled.
+#   - Settings > Actions > General > Workflow permissions > "Allow GitHub
+#     Actions to create and approve pull requests" enabled. This is repo-wide:
+#     any workflow granted pull-requests: write can approve PRs, including one
+#     added or edited in the PR itself (see Limit above).
+# Do not add to repos without a ruleset that requires status checks: an
+# approval plus auto-merge would otherwise merge before CI has run.
 
-name: Dependabot auto-merge
+name: Dependabot auto-approve
 
 on:
   pull_request:
@@ -18,13 +47,14 @@ permissions: {}
 
 jobs:
   dependabot:
+    name: Dependabot auto-approve
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     permissions:
       contents: write # gh pr merge --auto needs it to enable auto-merge
-      pull-requests: write # enable auto-merge and post the major-update comment
+      pull-requests: write # approve, enable auto-merge, post the major-update comment
     concurrency:
-      group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+      group: dependabot-auto-approve-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     steps:
       - name: Fetch Dependabot metadata
@@ -33,13 +63,60 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Verify every commit is Dependabot's
+        id: verify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # One line per commit: sha, author login, committer login, signature
+          # verified. Any API failure fails the job before anything is approved.
+          commits="$(gh api --paginate "repos/$REPO/pulls/$PR/commits" \
+            --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified | tostring)] | @tsv')"
+          if [ -z "$commits" ]; then
+            echo "::error::PR $PR lists no commits; not approving"
+            exit 1
+          fi
+          bad="$(awk -F'\t' '$2 != "dependabot[bot]" || $3 != "web-flow" || $4 != "true"' <<<"$commits")"
+          if [ -n "$bad" ]; then
+            echo "::warning::PR $PR has commits not made by Dependabot; not approving, a human must review"
+            printf '%s\n' "$bad"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # A head mismatch also covers the endpoint's 250-commit cap, which
+          # returns the oldest commits and so never ends at the head.
+          last="$(tail -n1 <<<"$commits" | cut -f1)"
+          if [ "$last" != "$HEAD_SHA" ]; then
+            echo "::error::PR $PR commit listing does not end at the head ($last != $HEAD_SHA); not approving"
+            exit 1
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Approve patch and minor updates
+        if: >-
+          steps.verify.outputs.ok == 'true'
+          && contains(fromJSON('["version-update:semver-patch", "version-update:semver-minor"]'),
+          steps.metadata.outputs.update-type)
+        run: gh api -X POST "repos/$REPO/pulls/$PR/reviews" -f event=APPROVE -f commit_id="$HEAD_SHA"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
       - name: Enable auto-merge for patch and minor updates
         if: >-
-          contains(fromJSON('["version-update:semver-patch", "version-update:semver-minor"]'),
+          steps.verify.outputs.ok == 'true'
+          && contains(fromJSON('["version-update:semver-patch", "version-update:semver-minor"]'),
           steps.metadata.outputs.update-type)
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: gh pr merge --auto --squash --match-head-commit "$HEAD_SHA" "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment once on major updates
