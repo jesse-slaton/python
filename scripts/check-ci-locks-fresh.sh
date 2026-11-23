@@ -40,7 +40,7 @@
 set -euo pipefail
 
 # RFC 3339, UTC. Must be in the past when committed.
-EXCLUDE_NEWER="2026-11-07T00:00:00Z"
+EXCLUDE_NEWER="2026-11-23T00:00:00Z"
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 LOCK_DIR="$REPO_ROOT/.github/ci-requirements"
