@@ -3,4 +3,4 @@
 # recipe, incl. its --exclude-newer timestamp); never compile by hand.
 # Keep both files in one commit; never edit the .lock by hand.
 # Lint job: ruff.
-ruff==0.17.4
+ruff==0.17.5
